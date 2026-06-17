@@ -11,6 +11,7 @@ import { initLocalDb, resetLocalDb } from '@/storage/db';
 import {
   countPendingMutations,
   createLocalHousehold,
+  reconcileHouseholdOwnership,
   createRecurrence,
   createAccount,
   createTransactionsFromInput,
@@ -105,7 +106,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       loading: false,
       syncStatus: online ? 'idle' : 'offline',
     });
-    await get().ensureHousehold();
+    // Só cria/garante a household automaticamente quando não há login obrigatório
+    // (Supabase desconfigurado) ou já existe sessão real. Caso contrário a household
+    // nasceria com 'local-user' e quebraria a RLS depois do login.
+    if (!isSupabaseConfigured() || session) await get().ensureHousehold();
     await get().refresh();
     if (online) void get().sync();
   },
@@ -142,9 +146,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   ensureHousehold: async (name = 'Familia') => {
+    const userId = get().userId ?? 'local-user';
+    const authenticated = !isSupabaseConfigured() || (Boolean(get().session) && userId !== 'local-user');
     let household = get().household ?? (await getHousehold());
     if (!household) {
-      household = await createLocalHousehold(get().userId ?? 'local-user', name);
+      // Não cria household com usuário placeholder quando o login é obrigatório.
+      if (!authenticated) return;
+      household = await createLocalHousehold(userId, name);
+    } else if (authenticated) {
+      // Household já existia (possivelmente criada offline): garante que pertença ao usuário real.
+      await reconcileHouseholdOwnership(userId);
+      household = (await getHousehold()) ?? household;
     }
     await setAppState('current_household_id', household.id);
     set({ household });

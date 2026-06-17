@@ -83,6 +83,54 @@ export async function createLocalHousehold(userId: string, name = 'Familia') {
   return household;
 }
 
+// Garante que a household e o vínculo de membro pertençam ao usuário autenticado.
+// Necessário porque a household pode ter sido criada offline com um id placeholder
+// ('local-user'); sem isso a RLS do servidor rejeita os inserts (is_household_member)
+// e os payloads com 'local-user' falham no cast para uuid.
+export async function reconcileHouseholdOwnership(userId: string) {
+  if (!userId || userId === 'local-user') return;
+  const db = await getDb();
+  const household = await getHousehold();
+  if (!household) return;
+
+  // 1) Corrige as linhas locais que ficaram com o placeholder antes do login.
+  await db.runAsync('UPDATE households SET created_by = ? WHERE created_by = ?', userId, 'local-user');
+  await db.runAsync('UPDATE household_members SET user_id = ? WHERE user_id = ?', userId, 'local-user');
+  await db.runAsync('UPDATE transactions SET created_by = ? WHERE created_by = ?', userId, 'local-user');
+
+  // 2) Reescreve payloads já enfileirados que carregam o placeholder e reativa o retry,
+  //    eliminando os erros "invalid input syntax for type uuid: local-user".
+  await db.runAsync(
+    `UPDATE mutation_queue SET payload = REPLACE(payload, ?, ?), attempts = 0, last_error = NULL WHERE payload LIKE ?`,
+    '"local-user"',
+    `"${userId}"`,
+    '%"local-user"%',
+  );
+
+  // 3) Garante membership owner do usuário atual e reenfileira household + member já
+  //    corrigidos (upsert idempotente por id), caso não existissem entradas na fila.
+  let member = await db.getFirstAsync<{ id: string; user_id: string; role: string; created_at: string }>(
+    'SELECT id, user_id, role, created_at FROM household_members WHERE household_id = ? AND user_id = ? LIMIT 1',
+    household.id,
+    userId,
+  );
+  if (!member) {
+    const created_at = now();
+    const id = createId();
+    await db.runAsync('INSERT INTO household_members (id, household_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)', id, household.id, userId, 'owner', created_at);
+    member = { id, user_id: userId, role: 'owner', created_at };
+  }
+
+  await enqueueMutation('households', household.id, 'upsert', { ...household, created_by: userId });
+  await enqueueMutation('household_members', member.id, 'upsert', {
+    id: member.id,
+    household_id: household.id,
+    user_id: userId,
+    role: member.role,
+    created_at: member.created_at,
+  });
+}
+
 export async function seedDefaultAccounts(householdId: string) {
   const db = await getDb();
   const existing = await db.getFirstAsync<{ count: number }>('SELECT count(*) as count FROM accounts WHERE household_id = ?', householdId);

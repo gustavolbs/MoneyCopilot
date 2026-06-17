@@ -38,7 +38,25 @@ export async function syncNow(householdId?: string) {
   }
 
   const db = await getDb();
-  const queue = await db.getAllAsync<QueueRow>('SELECT * FROM mutation_queue ORDER BY created_at ASC LIMIT 100');
+  // Ordena por dependência (tabelas-pai antes das filhas) e depois por created_at,
+  // para que household/membership subam antes de accounts/transactions e a RLS passe.
+  const queue = await db.getAllAsync<QueueRow>(
+    `SELECT * FROM mutation_queue
+     ORDER BY
+       CASE table_name
+         WHEN 'households' THEN 0
+         WHEN 'household_members' THEN 1
+         WHEN 'accounts' THEN 2
+         WHEN 'categories' THEN 3
+         WHEN 'categorization_rules' THEN 4
+         WHEN 'budgets' THEN 5
+         WHEN 'recurrences' THEN 6
+         WHEN 'transactions' THEN 7
+         ELSE 8
+       END,
+       created_at ASC
+     LIMIT 100`,
+  );
   let pushed = 0;
   for (const item of queue) {
     const payload = JSON.parse(item.payload) as Record<string, unknown>;
