@@ -1,12 +1,12 @@
 import { X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { formatCurrency } from '@/domain/normalize';
 import { Category, Transaction, TransactionType } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 
-import { Button, Field, Label } from './ui';
+import { Button, Field, KeyboardAccessory, Label } from './ui';
 
 type Props = {
   transaction: Transaction | null;
@@ -62,7 +62,8 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
           </Pressable>
         </View>
 
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <KeyboardAvoidingView style={styles.modal} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
           <View style={styles.group}>
             <Label>Descricao</Label>
             <Field value={description} onChangeText={setDescription} placeholder="Nome da transacao" />
@@ -116,6 +117,9 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
             <Field value={notes} onChangeText={setNotes} placeholder="Opcional" multiline />
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
+
+        <KeyboardAccessory />
 
         <View style={[styles.footer, { borderTopColor: colors.line }]}>
           <Button onPress={() => void onDelete()} variant="ghost">Excluir</Button>

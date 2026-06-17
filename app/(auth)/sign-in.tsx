@@ -44,7 +44,7 @@ export default function SignInScreen() {
       <Card style={{ gap: 12 }}>
         {mode === 'signup' ? <Field value={fullName} onChangeText={setFullName} placeholder="Nome" /> : null}
         <Field value={email} onChangeText={setEmail} placeholder="E-mail" keyboardType="email-address" />
-        <Field value={password} onChangeText={setPassword} placeholder="Senha" secureTextEntry />
+        <Field value={password} onChangeText={setPassword} placeholder="Senha" secureTextEntry onSubmitEditing={submit} />
         <Button onPress={submit} loading={loading}>{mode === 'signup' ? 'Criar conta' : 'Entrar'}</Button>
         <Button onPress={() => setMode(mode === 'signup' ? 'login' : 'signup')} variant="ghost">
           {mode === 'signup' ? 'Ja tenho conta' : 'Criar nova conta'}

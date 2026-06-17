@@ -1,12 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { SendHorizonal } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { formatCurrency } from '@/domain/normalize';
 import { parseTransactionInput } from '@/domain/parser';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
+import { KEYBOARD_ACCESSORY_ID } from './ui';
 
 export function QuickEntry() {
   const [value, setValue] = useState('');
@@ -34,6 +35,7 @@ export function QuickEntry() {
           style={[styles.input, { color: colors.ink }]}
           returnKeyType="send"
           onSubmitEditing={submit}
+          inputAccessoryViewID={Platform.OS === 'ios' ? KEYBOARD_ACCESSORY_ID : undefined}
         />
         <Pressable onPress={submit} style={[styles.send, { backgroundColor: colors.ink }]}>
           <SendHorizonal color={colors.bg} size={20} />

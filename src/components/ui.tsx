@@ -1,15 +1,42 @@
 import { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, InputAccessoryView, Keyboard, KeyboardAvoidingView, Platform, Pressable, ReturnKeyTypeOptions, ScrollView, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/lib/theme';
+
+// ID compartilhado da barra "Fechar" acima do teclado (iOS). Necessario porque os
+// teclados numeric/email-address no iOS nao tem tecla de retorno para dispensar.
+export const KEYBOARD_ACCESSORY_ID = 'mc-keyboard-accessory';
+
+export function KeyboardAccessory() {
+  const { colors } = useTheme();
+  if (Platform.OS !== 'ios') return null;
+  return (
+    <InputAccessoryView nativeID={KEYBOARD_ACCESSORY_ID}>
+      <View style={[styles.accessory, { backgroundColor: colors.elevated, borderTopColor: colors.line }]}>
+        <Pressable onPress={() => Keyboard.dismiss()} hitSlop={10} style={styles.accessoryBtn}>
+          <Text style={[styles.accessoryText, { color: colors.blue }]}>Fechar</Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  );
+}
 
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
   const { colors } = useTheme();
   const content = <View style={styles.content}>{children}</View>;
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {scroll ? <ScrollView keyboardShouldPersistTaps="handled">{content}</ScrollView> : content}
+      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {scroll ? (
+          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+            {content}
+          </ScrollView>
+        ) : (
+          content
+        )}
+      </KeyboardAvoidingView>
+      <KeyboardAccessory />
     </SafeAreaView>
   );
 }
@@ -47,9 +74,30 @@ export function Button({ children, onPress, variant = 'primary', loading = false
   );
 }
 
-export function Field(props: { value: string; onChangeText: (value: string) => void; placeholder: string; secureTextEntry?: boolean; multiline?: boolean; keyboardType?: 'default' | 'email-address' | 'numeric' }) {
+export function Field(props: {
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+  secureTextEntry?: boolean;
+  multiline?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'numeric';
+  returnKeyType?: ReturnKeyTypeOptions;
+  onSubmitEditing?: () => void;
+}) {
   const { colors } = useTheme();
-  return <TextInput {...props} placeholderTextColor={colors.muted} style={[styles.field, { backgroundColor: colors.elevated, borderColor: colors.line, color: colors.ink }, props.multiline && styles.multiline]} />;
+  const isMultiline = Boolean(props.multiline);
+  return (
+    <TextInput
+      {...props}
+      placeholderTextColor={colors.muted}
+      // Barra "Fechar" no iOS para qualquer teclado (inclui numeric/email sem tecla de retorno).
+      inputAccessoryViewID={Platform.OS === 'ios' ? KEYBOARD_ACCESSORY_ID : undefined}
+      // Campos de uma linha fecham o teclado ao confirmar; multiline mantem a quebra de linha.
+      returnKeyType={props.returnKeyType ?? (isMultiline ? 'default' : 'done')}
+      blurOnSubmit={!isMultiline}
+      style={[styles.field, { backgroundColor: colors.elevated, borderColor: colors.line, color: colors.ink }, isMultiline && styles.multiline]}
+    />
+  );
 }
 
 export function RowItem({ title, subtitle, right, onPress }: { title: string; subtitle?: string; right?: ReactNode; onPress?: () => void }) {
@@ -116,6 +164,22 @@ export const styles = StyleSheet.create({
     minHeight: 104,
     paddingTop: 14,
     textAlignVertical: 'top',
+  },
+  accessory: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  accessoryBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  accessoryText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   rowItem: {
     minHeight: 50,

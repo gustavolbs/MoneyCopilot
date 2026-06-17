@@ -1,11 +1,13 @@
+import Constants from "expo-constants";
+
 export const env = {
-  supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",
+  supabaseUrl: Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey:
-    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
     "",
-  enableAi: process.env.EXPO_PUBLIC_ENABLE_AI === "true",
-  openAiApiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? "",
+  enableAi: Constants.expoConfig?.extra?.EXPO_PUBLIC_ENABLE_AI === "true",
+  openAiApiKey: Constants.expoConfig?.extra?.EXPO_PUBLIC_OPENAI_API_KEY ?? "",
 };
 
 export const isSupabaseConfigured = () =>
