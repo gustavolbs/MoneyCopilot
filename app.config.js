@@ -4,7 +4,7 @@ module.exports = {
     slug: "MoneyCopilot",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/adaptive-icon.png",
     scheme: "moneycopilot",
     userInterfaceStyle: "automatic",
     ios: {
