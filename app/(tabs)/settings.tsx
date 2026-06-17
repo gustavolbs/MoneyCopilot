@@ -1,4 +1,4 @@
-import { Alert, Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { useState } from 'react';
 
 import { SyncPill } from '@/components/SyncPill';
@@ -7,12 +7,9 @@ import { Account } from '@/domain/types';
 import { isSupabaseConfigured } from '@/lib/env';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
-import { useThemeStore } from '@/store/themeStore';
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const themeMode = useThemeStore((state) => state.mode);
-  const toggleDarkMode = useThemeStore((state) => state.toggleDarkMode);
   const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount } = useAppStore();
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<Account['type']>('reserve');
@@ -37,22 +34,6 @@ export default function SettingsScreen() {
         <Label>Familia</Label>
         <RowItem title={household?.name ?? 'Familia'} subtitle="Dados compartilhados no household" />
         <RowItem title="Membros" subtitle="Convites por e-mail preparados no Supabase" right={<Text style={{ color: colors.muted }}>Em breve</Text>} />
-      </Card>
-
-      <Card style={{ gap: 10 }}>
-        <Label>Aparencia</Label>
-        <RowItem
-          title="Dark mode"
-          subtitle={themeMode === 'dark' ? 'Ativado manualmente' : themeMode === 'light' ? 'Desativado manualmente' : 'Usando sistema'}
-          right={
-            <Switch
-              value={themeMode === 'dark'}
-              onValueChange={toggleDarkMode}
-              trackColor={{ false: colors.subtle, true: `${colors.blue}66` }}
-              thumbColor={themeMode === 'dark' ? colors.blue : colors.muted}
-            />
-          }
-        />
       </Card>
 
       <Card style={{ gap: 8 }}>

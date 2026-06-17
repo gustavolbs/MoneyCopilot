@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { ThemeTransitionOverlay } from '@/components/ThemeTransitionOverlay';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
 
@@ -33,6 +34,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
       </Stack>
+      <ThemeTransitionOverlay />
     </GestureHandlerRootView>
   );
 }
