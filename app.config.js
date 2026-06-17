@@ -30,6 +30,12 @@ module.exports = {
     experiments: {
       typedRoutes: true,
     },
+    updates: {
+      url: "https://u.expo.dev/05146b73-0bb4-4317-aefb-d3232882cf60",
+    },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
     extra: {
       EXPO_PUBLIC_SUPABASE_URL: "https://yhogmascbzzwtiyrbzsn.supabase.co",
       EXPO_PUBLIC_SUPABASE_ANON_KEY:
