@@ -12,6 +12,7 @@ import {
   countPendingMutations,
   createLocalHousehold,
   reconcileHouseholdOwnership,
+  reconcileHouseholds,
   createRecurrence,
   createAccount,
   createTransactionsFromInput,
@@ -276,7 +277,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     set({ syncStatus: 'syncing' });
     try {
+      const userId = get().userId;
       await syncNow(get().household?.id);
+      // Apos o pull, converge dispositivos para uma unica household (corrige dados que
+      // nao apareciam entre desktop e mobile na mesma conta).
+      if (userId && userId !== 'local-user') {
+        const { household: canonical, changed } = await reconcileHouseholds(userId);
+        if (canonical && canonical.id !== get().household?.id) set({ household: canonical });
+        if (canonical && changed) await syncNow(canonical.id); // envia migrados + re-pull completo
+      }
       await get().refresh();
       set({ syncStatus: 'idle' });
     } catch (error) {

@@ -3,7 +3,7 @@ import { normalizeText } from '@/domain/normalize';
 import { Account, Budget, Category, CategorizationRule, Household, ParsedTransaction, Recurrence, Transaction, UserRules } from '@/domain/types';
 import { createId } from '@/lib/id';
 
-import { readLocalDb, TableName, updateLocalDb } from './db';
+import { LocalDbState, readLocalDb, TableName, updateLocalDb } from './db';
 
 const now = () => new Date().toISOString();
 
@@ -119,6 +119,107 @@ export async function reconcileHouseholdOwnership(userId: string) {
 
   await enqueueMutation('households', household.id, 'upsert', { ...household, created_by: userId });
   if (memberId && memberPayload) await enqueueMutation('household_members', memberId, 'upsert', memberPayload);
+}
+
+function enqueueInline(db: LocalDbState, table: TableName, rowId: string, payload: unknown) {
+  db.mutation_queue.push({
+    id: createId(),
+    table_name: table,
+    row_id: rowId,
+    operation: 'upsert',
+    payload: JSON.stringify(payload),
+    created_at: now(),
+    attempts: 0,
+    last_error: null,
+  });
+}
+
+// Converge todos os dados para UMA household canonica (a mais antiga). Necessario porque
+// cada dispositivo criava a propria household com id aleatorio, fazendo a "mesma conta"
+// ter households diferentes no desktop e no mobile -> dados nao apareciam entre aparelhos.
+// Deve rodar DEPOIS do pull (quando as households remotas ja estao no estado local).
+export async function reconcileHouseholds(userId: string): Promise<{ household: Household | null; changed: boolean }> {
+  if (!userId || userId === 'local-user') {
+    return { household: await getHousehold(), changed: false };
+  }
+  return updateLocalDb((db) => {
+    const sorted = [...db.households].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+    const canonical = sorted[0] ?? null;
+    if (!canonical) return { household: null, changed: false };
+
+    const otherIds = new Set(db.households.filter((h) => h.id !== canonical.id).map((h) => h.id));
+    if (otherIds.size === 0) return { household: canonical, changed: false };
+
+    const ts = now();
+
+    // Contas: migra para a canonica, descartando duplicatas vazias (defaults seedados por
+    // cada dispositivo) que nao sao referenciadas por nenhuma transacao.
+    const keptAccounts: Account[] = [];
+    for (const acc of db.accounts) {
+      if (!otherIds.has(acc.household_id)) {
+        keptAccounts.push(acc);
+        continue;
+      }
+      const referenced = db.transactions.some((t) => t.account_id === acc.id || t.transfer_account_id === acc.id);
+      const dupInCanonical = db.accounts.some((a) => a.household_id === canonical.id && !a.deleted_at && a.name === acc.name && a.type === acc.type);
+      if (!referenced && dupInCanonical) continue; // descarta conta duplicada e sem uso
+      acc.household_id = canonical.id;
+      acc.updated_at = ts;
+      enqueueInline(db, 'accounts', acc.id, acc);
+      keptAccounts.push(acc);
+    }
+    db.accounts = keptAccounts;
+
+    for (const t of db.transactions) {
+      if (otherIds.has(t.household_id)) {
+        t.household_id = canonical.id;
+        t.updated_at = ts;
+        enqueueInline(db, 'transactions', t.id, t);
+      }
+    }
+    for (const c of db.categories) {
+      if (c.household_id && otherIds.has(c.household_id)) {
+        c.household_id = canonical.id;
+        c.updated_at = ts;
+        enqueueInline(db, 'categories', c.id, c);
+      }
+    }
+    for (const r of db.categorization_rules) {
+      if (otherIds.has(r.household_id)) {
+        r.household_id = canonical.id;
+        r.updated_at = ts;
+        enqueueInline(db, 'categorization_rules', r.id, r);
+      }
+    }
+    for (const b of db.budgets) {
+      if (otherIds.has(b.household_id)) {
+        b.household_id = canonical.id;
+        b.updated_at = ts;
+        enqueueInline(db, 'budgets', b.id, b);
+      }
+    }
+    for (const rec of db.recurrences) {
+      if (otherIds.has(rec.household_id)) {
+        rec.household_id = canonical.id;
+        rec.updated_at = ts;
+        enqueueInline(db, 'recurrences', rec.id, rec);
+      }
+    }
+
+    // Garante o vinculo do usuario com a household canonica.
+    if (!db.household_members.some((m) => m.household_id === canonical.id && m.user_id === userId)) {
+      const m = { id: createId(), household_id: canonical.id, user_id: userId, role: 'owner', created_at: now() };
+      db.household_members.push(m);
+      enqueueInline(db, 'household_members', m.id, m);
+    }
+
+    // Reseta o cursor incremental para forcar um pull completo da household canonica
+    // (senao 'updated_at > last_pulled_at' pularia os registros ja existentes, ex.: a transacao de 4500).
+    db.sync_state = {};
+    db.app_state['current_household_id'] = canonical.id;
+
+    return { household: canonical, changed: true };
+  });
 }
 
 export async function seedDefaultAccounts(householdId: string) {
