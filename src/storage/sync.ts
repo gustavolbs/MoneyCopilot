@@ -103,6 +103,21 @@ async function upsertLocalRow(tableName: (typeof syncTables)[number], row: Recor
   });
 }
 
+// Puxa households e memberships sem filtro de household (RLS limita ao que o usuario pode ver).
+// Usado logo apos aceitar convites, para que a household recem-entrada apareca localmente
+// antes de ensureHousehold decidir se cria uma nova.
+export async function pullHouseholdsAndMembers() {
+  if (!isSupabaseConfigured() || !(await isOnline())) return;
+  for (const table of ['households', 'household_members'] as const) {
+    const { data, error } = await supabase.from(table).select('*').limit(500);
+    if (error) {
+      await logSync('error', `${table} pull falhou: ${error.message}`);
+      continue;
+    }
+    for (const row of data ?? []) await upsertLocalRow(table, row as Record<string, unknown>);
+  }
+}
+
 export async function listSyncLogs() {
   const db = await readLocalDb();
   return db.sync_logs.map(({ level, message, created_at }) => ({ level, message, created_at })).slice(0, 30);

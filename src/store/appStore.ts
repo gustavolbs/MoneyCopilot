@@ -29,9 +29,21 @@ import {
   updateTransaction,
   upsertBudget,
 } from '@/storage/repository';
-import { isOnline, listSyncLogs, syncNow } from '@/storage/sync';
+import { isOnline, listSyncLogs, pullHouseholdsAndMembers, syncNow } from '@/storage/sync';
 
 type SyncStatus = 'idle' | 'offline' | 'syncing' | 'error';
+
+export type FamilyMember = { user_id: string; role: string; name: string; isYou: boolean };
+export type FamilyInvite = { id: string; email: string; role: string; created_at: string };
+
+// Aceita convites pendentes do e-mail logado (via funcao no banco) e baixa as households
+// resultantes, para que o usuario entre na Familia correta antes de criar uma nova.
+async function acceptInvitesAndPull() {
+  if (!isSupabaseConfigured() || !(await isOnline())) return;
+  const { error } = await supabase.rpc('accept_household_invites');
+  if (error) return; // sem convite valido ou offline; segue o fluxo normal
+  await pullHouseholdsAndMembers();
+}
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
   return Promise.race<T>([
@@ -58,6 +70,8 @@ type AppState = {
   pendingMutations: number;
   syncStatus: SyncStatus;
   syncLogs: Array<{ level: string; message: string; created_at: string }>;
+  familyMembers: FamilyMember[];
+  familyInvites: FamilyInvite[];
   error: string | null;
   bootstrap: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -74,6 +88,9 @@ type AppState = {
   sync: () => Promise<void>;
   resetCache: () => Promise<void>;
   addAccount: (name: string, type: Account['type']) => Promise<void>;
+  loadFamily: () => Promise<void>;
+  inviteMember: (email: string) => Promise<void>;
+  removeMember: (userId: string) => Promise<void>;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -92,6 +109,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   pendingMutations: 0,
   syncStatus: 'idle',
   syncLogs: [],
+  familyMembers: [],
+  familyInvites: [],
   error: null,
 
   bootstrap: async () => {
@@ -117,6 +136,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         loading: false,
         syncStatus: online ? 'idle' : 'offline',
       });
+      // Aceita convites pendentes antes de criar household, para entrar na Familia
+      // existente em vez de criar uma nova.
+      if (session && online) await acceptInvitesAndPull();
       // Só cria/garante a household automaticamente quando não há login obrigatório
       // (Supabase desconfigurado) ou já existe sessão real. Caso contrário a household
       // nasceria com 'local-user' e quebraria a RLS depois do login.
@@ -143,8 +165,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       throw error;
     }
     set({ session: data.session, userId: data.user?.id ?? null, loading: false });
+    await acceptInvitesAndPull();
     await get().ensureHousehold();
     await get().refresh();
+    void get().sync();
   },
 
   signUp: async (email, password, fullName) => {
@@ -156,8 +180,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       throw error;
     }
     set({ session: data.session, userId: data.user?.id ?? null, loading: false });
+    await acceptInvitesAndPull();
     await get().ensureHousehold();
     await get().refresh();
+    void get().sync();
   },
 
   signOut: async () => {
@@ -306,5 +332,79 @@ export const useAppStore = create<AppState>((set, get) => ({
     await createAccount(household.id, name.trim(), type);
     await get().refresh();
     void get().sync();
+  },
+
+  loadFamily: async () => {
+    const household = get().household;
+    if (!household || !isSupabaseConfigured()) {
+      set({ familyMembers: [], familyInvites: [] });
+      return;
+    }
+    const me = get().userId;
+    const myEmail = get().session?.user.email ?? '';
+
+    const { data: members } = await supabase.from('household_members').select('id, user_id, role').eq('household_id', household.id);
+    const ids = (members ?? []).map((m) => m.user_id as string);
+    const { data: profiles } = ids.length
+      ? await supabase.from('profiles').select('user_id, full_name').in('user_id', ids)
+      : { data: [] as Array<{ user_id: string; full_name: string | null }> };
+    const nameById = new Map((profiles ?? []).map((p) => [p.user_id as string, (p.full_name as string | null) ?? '']));
+
+    const familyMembers: FamilyMember[] = (members ?? [])
+      .map((m) => {
+        const uid = m.user_id as string;
+        const profileName = (nameById.get(uid) ?? '').trim();
+        const isYou = uid === me;
+        return {
+          user_id: uid,
+          role: m.role as string,
+          isYou,
+          name: profileName || (isYou ? myEmail || 'Você' : 'Membro'),
+        };
+      })
+      .sort((a, b) => Number(b.isYou) - Number(a.isYou) || a.name.localeCompare(b.name));
+
+    const { data: invites } = await supabase
+      .from('household_invites')
+      .select('id, email, role, created_at')
+      .eq('household_id', household.id)
+      .is('accepted_at', null);
+    const familyInvites: FamilyInvite[] = (invites ?? []).map((i) => ({
+      id: i.id as string,
+      email: i.email as string,
+      role: i.role as string,
+      created_at: i.created_at as string,
+    }));
+
+    set({ familyMembers, familyInvites });
+  },
+
+  inviteMember: async (email) => {
+    const household = get().household;
+    const me = get().userId;
+    if (!household || !me || !email.trim()) return;
+    if (!isSupabaseConfigured()) throw new Error('Configure o Supabase para convidar membros.');
+    const { error } = await supabase.from('household_invites').insert({
+      household_id: household.id,
+      email: email.trim().toLowerCase(),
+      role: 'member',
+      invited_by: me,
+    });
+    if (error) {
+      set({ error: error.message });
+      throw error;
+    }
+    await get().loadFamily();
+  },
+
+  removeMember: async (userId) => {
+    const household = get().household;
+    if (!household) return;
+    const { error } = await supabase.from('household_members').delete().eq('household_id', household.id).eq('user_id', userId);
+    if (error) {
+      set({ error: error.message });
+      throw error;
+    }
+    await get().loadFamily();
   },
 }));

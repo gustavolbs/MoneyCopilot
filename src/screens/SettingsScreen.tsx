@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { SyncPill } from '@/components/SyncPill';
 import { Button, Card, Field, Label, RowItem, Screen, Title } from '@/components/ui';
@@ -11,9 +11,26 @@ import { useAppStore } from '@/store/appStore';
 
 export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
   const { colors } = useTheme();
-  const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount } = useAppStore();
+  const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount, familyMembers, familyInvites, loadFamily, inviteMember, removeMember } = useAppStore();
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<Account['type']>('reserve');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [familyError, setFamilyError] = useState<string | null>(null);
+  const isOwner = familyMembers.some((member) => member.isYou && member.role === 'owner');
+
+  useEffect(() => {
+    if (isSupabaseConfigured() && household) void loadFamily();
+  }, [household, loadFamily]);
+
+  const handleInvite = async () => {
+    setFamilyError(null);
+    try {
+      await inviteMember(inviteEmail);
+      setInviteEmail('');
+    } catch (error) {
+      setFamilyError(error instanceof Error ? error.message : 'Nao foi possivel convidar.');
+    }
+  };
   const accountTypes: Array<{ label: string; value: Account['type'] }> = [
     { label: 'Conta corrente', value: 'checking' },
     { label: 'Cartao de credito', value: 'credit_card' },
@@ -34,7 +51,47 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
       <Card style={{ gap: 10 }}>
         <Label>Familia</Label>
         <RowItem title={household?.name ?? 'Familia'} subtitle="Dados compartilhados no household" />
-        <RowItem title="Membros" subtitle="Convites por e-mail preparados no Supabase" right={<span style={{ color: colors.muted }}>Em breve</span>} />
+
+        {familyMembers.map((member) => (
+          <RowItem
+            key={member.user_id}
+            title={member.isYou ? `${member.name} (voce)` : member.name}
+            subtitle={member.role === 'owner' ? 'Responsavel' : 'Membro'}
+            right={
+              isOwner && !member.isYou ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Remover ${member.name} da familia?`)) void removeMember(member.user_id);
+                  }}
+                  className="chip"
+                  style={{ backgroundColor: colors.subtle, color: colors.red, borderColor: 'transparent' }}
+                >
+                  Remover
+                </button>
+              ) : undefined
+            }
+          />
+        ))}
+
+        {familyInvites.map((invite) => (
+          <RowItem key={invite.id} title={invite.email} subtitle="Convite pendente" right={<span style={{ color: colors.muted }}>Aguardando</span>} />
+        ))}
+
+        {!isSupabaseConfigured() ? (
+          <p className="sync-log" style={{ color: colors.muted }}>Configure o Supabase para convidar membros.</p>
+        ) : isOwner ? (
+          <>
+            <div className="separator" style={{ backgroundColor: colors.line }} />
+            <Label>Convidar por e-mail</Label>
+            <Field value={inviteEmail} onChangeText={setInviteEmail} placeholder="email@exemplo.com" keyboardType="email-address" />
+            <Button onPress={() => void handleInvite()} variant="ghost">Enviar convite</Button>
+            {familyError ? <p className="sync-log" style={{ color: colors.red }}>{familyError}</p> : null}
+            <p className="sync-log" style={{ color: colors.muted }}>A pessoa entra na familia ao criar conta ou logar com esse e-mail.</p>
+          </>
+        ) : (
+          <p className="sync-log" style={{ color: colors.muted }}>Apenas o responsavel pode convidar novos membros.</p>
+        )}
       </Card>
 
       <Card style={{ gap: 8 }}>

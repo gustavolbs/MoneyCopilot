@@ -95,9 +95,11 @@ export async function reconcileHouseholdOwnership(userId: string) {
   const household = await getHousehold();
   if (!household) return;
 
-  let memberId: string | null = null;
-  let memberPayload: { id: string; household_id: string; user_id: string; role: string; created_at: string } | null = null;
+  let claimedHousehold: Household | null = null;
+  let createdMember: { id: string; household_id: string; user_id: string; role: string; created_at: string } | null = null;
+
   await updateLocalDb((db) => {
+    // Reivindica para o usuario real apenas o que estava com o placeholder 'local-user'.
     for (const item of db.households) if (item.created_by === 'local-user') item.created_by = userId;
     for (const item of db.household_members) if (item.user_id === 'local-user') item.user_id = userId;
     for (const item of db.transactions) if (item.created_by === 'local-user') item.created_by = userId;
@@ -108,17 +110,23 @@ export async function reconcileHouseholdOwnership(userId: string) {
         item.last_error = null;
       }
     }
+
+    const current = db.households.find((h) => h.id === household.id);
+    // Garante o vinculo do usuario com a household atual; cria localmente se faltar.
     let member = db.household_members.find((item) => item.household_id === household.id && item.user_id === userId);
     if (!member) {
-      member = { id: createId(), household_id: household.id, user_id: userId, role: 'owner', created_at: now() };
+      const role = current && current.created_by === userId ? 'owner' : 'member';
+      member = { id: createId(), household_id: household.id, user_id: userId, role, created_at: now() };
       db.household_members.push(member);
+      createdMember = { ...member };
     }
-    memberId = member.id;
-    memberPayload = { ...member };
+    // So reenfileira a household se o usuario for o criador dela (evita sequestrar a
+    // household de outro membro, ex.: a esposa entrando na Familia do marido).
+    if (current && current.created_by === userId) claimedHousehold = { ...current };
   });
 
-  await enqueueMutation('households', household.id, 'upsert', { ...household, created_by: userId });
-  if (memberId && memberPayload) await enqueueMutation('household_members', memberId, 'upsert', memberPayload);
+  if (claimedHousehold) await enqueueMutation('households', (claimedHousehold as Household).id, 'upsert', claimedHousehold);
+  if (createdMember) await enqueueMutation('household_members', (createdMember as { id: string }).id, 'upsert', createdMember);
 }
 
 function enqueueInline(db: LocalDbState, table: TableName, rowId: string, payload: unknown) {
@@ -143,8 +151,17 @@ export async function reconcileHouseholds(userId: string): Promise<{ household: 
     return { household: await getHousehold(), changed: false };
   }
   return updateLocalDb((db) => {
-    const sorted = [...db.households].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
-    const canonical = sorted[0] ?? null;
+    // Canonica = household com MAIS membros (a Familia compartilhada), desempatando pela
+    // mais antiga. Assim, ao entrar na Familia do conjuge, convergimos para a household dela
+    // (que tem 2 membros) e nao para a household pessoal/sobra (1 membro).
+    const memberCount = new Map<string, number>();
+    for (const m of db.household_members) memberCount.set(m.household_id, (memberCount.get(m.household_id) ?? 0) + 1);
+    const canonical =
+      [...db.households].sort((a, b) => {
+        const diff = (memberCount.get(b.id) ?? 0) - (memberCount.get(a.id) ?? 0);
+        if (diff !== 0) return diff;
+        return a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
+      })[0] ?? null;
     if (!canonical) return { household: null, changed: false };
 
     const otherIds = new Set(db.households.filter((h) => h.id !== canonical.id).map((h) => h.id));
@@ -152,8 +169,8 @@ export async function reconcileHouseholds(userId: string): Promise<{ household: 
 
     const ts = now();
 
-    // Contas: migra para a canonica, descartando duplicatas vazias (defaults seedados por
-    // cada dispositivo) que nao sao referenciadas por nenhuma transacao.
+    // Contas: migra apenas as referenciadas por transacoes. Contas sem uso (defaults seedados
+    // por cada dispositivo) sao descartadas localmente para nao duplicar contas na Familia.
     const keptAccounts: Account[] = [];
     for (const acc of db.accounts) {
       if (!otherIds.has(acc.household_id)) {
@@ -161,8 +178,7 @@ export async function reconcileHouseholds(userId: string): Promise<{ household: 
         continue;
       }
       const referenced = db.transactions.some((t) => t.account_id === acc.id || t.transfer_account_id === acc.id);
-      const dupInCanonical = db.accounts.some((a) => a.household_id === canonical.id && !a.deleted_at && a.name === acc.name && a.type === acc.type);
-      if (!referenced && dupInCanonical) continue; // descarta conta duplicada e sem uso
+      if (!referenced) continue; // conta sem transacao -> descarta (evita duplicar defaults)
       acc.household_id = canonical.id;
       acc.updated_at = ts;
       enqueueInline(db, 'accounts', acc.id, acc);
