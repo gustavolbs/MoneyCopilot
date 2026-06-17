@@ -34,14 +34,29 @@ export function TransactionsScreen() {
         </div>
       </Card>
       <Card>
-        {filtered.map((transaction) => (
-          <TransactionRow
-            key={transaction.id}
-            transaction={transaction}
-            category={categories.find((item) => item.id === transaction.category_id)}
-            onPress={() => setEditing(transaction)}
-          />
-        ))}
+        {filtered.length ? (
+          <div className="transaction-table-wrap">
+            <table className="transaction-table">
+              <thead>
+                <tr>
+                  <th>Nome e data</th>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((transaction) => (
+                  <TransactionRow
+                    key={transaction.id}
+                    transaction={transaction}
+                    category={categories.find((item) => item.id === transaction.category_id)}
+                    onPress={() => setEditing(transaction)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
         {!filtered.length ? <p className="muted" style={{ color: colors.muted }}>Nenhuma transacao encontrada.</p> : null}
       </Card>
       <TransactionEditor

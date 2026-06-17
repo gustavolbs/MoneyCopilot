@@ -3,11 +3,12 @@
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { CategoryBadge } from '@/components/CategoryBadge';
 import { formatCurrency } from '@/domain/normalize';
 import { Category, Transaction, TransactionType } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 
-import { Button, Field, Label } from './ui';
+import { Button, Field } from './ui';
 
 type Props = {
   transaction: Transaction | null;
@@ -29,7 +30,6 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (!transaction) return;
@@ -37,7 +37,6 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
     setAmount(String(transaction.amount).replace('.', ','));
     setType(transaction.type);
     setCategoryId(transaction.category_id);
-    setNotes(transaction.notes ?? '');
   }, [transaction]);
 
   const availableCategories = useMemo(
@@ -49,75 +48,57 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
 
   const parsedAmount = Number(amount.replace(/\./g, '').replace(',', '.'));
   const canSave = description.trim().length > 0 && Number.isFinite(parsedAmount) && parsedAmount >= 0;
+  const selectedCategory = categories.find((category) => category.id === categoryId);
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="transaction-editor-title">
       <div className="modal-panel" style={{ backgroundColor: colors.bg }}>
-        <header className="modal-header">
-          <div>
-            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>Editar transacao</h2>
-            <p style={{ color: colors.muted }}>{formatCurrency(transaction.amount)}</p>
+        <header className="transaction-editor-header">
+          <div className="transaction-editor-summary">
+            <p style={{ color: colors.muted }}>Editar transacao</p>
+            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>{description || transaction.description}</h2>
+            <strong style={{ color: transaction.type === 'income' ? colors.green : transaction.type === 'transfer' ? colors.blue : colors.red }}>
+              {transaction.type === 'income' ? '+' : transaction.type === 'transfer' ? '' : '-'}{formatCurrency(parsedAmount || transaction.amount)}
+            </strong>
+            {type !== 'transfer' ? <CategoryBadge category={selectedCategory} label={selectedCategory?.name ?? 'Categoria'} /> : <CategoryBadge label="Transferencia" />}
           </div>
           <button type="button" onClick={onClose} className="icon-button" style={{ backgroundColor: colors.subtle }} aria-label="Fechar">
             <X size={20} color={colors.ink} />
           </button>
         </header>
 
-        <div className="modal-content">
-          <div className="form-group">
-            <Label>Descricao</Label>
+        <div className="transaction-editor-content">
+          <div className="editor-field-grid">
             <Field value={description} onChangeText={setDescription} placeholder="Nome da transacao" />
-          </div>
-
-          <div className="form-group">
-            <Label>Valor</Label>
             <Field value={amount} onChangeText={setAmount} placeholder="0,00" keyboardType="numeric" />
           </div>
 
-          <div className="form-group">
-            <Label>Tipo</Label>
-            <div className="segment-row">
-              {typeOptions.map((option) => (
-                <button
-                  type="button"
-                  key={option.value}
-                  onClick={() => setType(option.value)}
-                  className="segment"
-                  style={{ backgroundColor: type === option.value ? colors.ink : colors.subtle, color: type === option.value ? colors.bg : colors.ink }}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+          <div className="editor-type-row">
+            {typeOptions.map((option) => (
+              <button
+                type="button"
+                key={option.value}
+                onClick={() => setType(option.value)}
+                className="editor-type-button"
+                style={{ backgroundColor: type === option.value ? colors.blue : colors.subtle, color: type === option.value ? '#00111F' : colors.ink }}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
 
           {type !== 'transfer' ? (
-            <div className="form-group">
-              <Label>Categoria</Label>
-              <div className="chip-grid">
+            <div className="editor-category-list" aria-label="Categorias">
                 {availableCategories.map((category) => (
-                  <button
-                    type="button"
+                  <CategoryBadge
                     key={category.id}
+                    category={category}
+                    selected={categoryId === category.id}
                     onClick={() => setCategoryId(category.id)}
-                    className="chip"
-                    style={{
-                      backgroundColor: categoryId === category.id ? category.color : colors.subtle,
-                      borderColor: categoryId === category.id ? category.color : colors.line,
-                      color: categoryId === category.id ? '#fff' : colors.ink,
-                    }}
-                  >
-                    {category.name}
-                  </button>
+                  />
                 ))}
-              </div>
             </div>
           ) : null}
-
-          <div className="form-group">
-            <Label>Observacao</Label>
-            <Field value={notes} onChangeText={setNotes} placeholder="Opcional" multiline />
-          </div>
         </div>
 
         <footer className="modal-footer" style={{ borderColor: colors.line }}>
@@ -130,7 +111,6 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
                 amount: parsedAmount,
                 type,
                 category_id: type === 'transfer' ? null : categoryId,
-                notes: notes.trim() || null,
               });
             }}
           >

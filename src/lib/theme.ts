@@ -3,31 +3,31 @@ import { useEffect, useState } from 'react';
 import { useThemeStore } from '@/store/themeStore';
 
 export const lightColors = {
-  bg: '#F7F7F2',
+  bg: '#F6F8FC',
   surface: '#FFFFFF',
-  elevated: '#FCFCF8',
-  ink: '#111827',
-  muted: '#6B7280',
-  line: '#E7E5DA',
-  subtle: '#F1F0E8',
-  green: '#22A06B',
-  red: '#E95440',
-  gold: '#D9A441',
-  blue: '#2F80ED',
+  elevated: '#FFFFFF',
+  ink: '#13243A',
+  muted: '#7A88A6',
+  line: '#E6ECF5',
+  subtle: '#F0F4FA',
+  green: '#10C960',
+  red: '#FF4438',
+  gold: '#F2A900',
+  blue: '#2F80FF',
 };
 
 export const darkColors = {
-  bg: '#0E1116',
-  surface: '#171B22',
-  elevated: '#202633',
-  ink: '#F8FAFC',
-  muted: '#9CA3AF',
-  line: '#2B3240',
-  subtle: '#202633',
-  green: '#4ADE80',
-  red: '#FB7185',
-  gold: '#FBBF24',
-  blue: '#60A5FA',
+  bg: '#000813',
+  surface: '#031B32',
+  elevated: '#062846',
+  ink: '#EEF6FF',
+  muted: '#86A0C1',
+  line: '#0E365D',
+  subtle: '#082542',
+  green: '#5FDA57',
+  red: '#FF4D73',
+  gold: '#F5A400',
+  blue: '#5EA7FF',
 };
 
 export const colors = lightColors;

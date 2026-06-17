@@ -1,6 +1,7 @@
 import { SendHorizonal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { CategoryBadge } from '@/components/CategoryBadge';
 import { formatCurrency } from '@/domain/normalize';
 import { parseTransactionInput } from '@/domain/parser';
 import { useTheme } from '@/lib/theme';
@@ -8,7 +9,7 @@ import { useAppStore } from '@/store/appStore';
 
 export function QuickEntry() {
   const [value, setValue] = useState('');
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { addQuickInput, categories, rules, accounts } = useAppStore();
   const preview = useMemo(() => (value.trim() ? parseTransactionInput(value, { categories, rules, accounts }) : []), [accounts, categories, rules, value]);
 
@@ -32,8 +33,14 @@ export function QuickEntry() {
             if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') void submit();
           }}
         />
-        <button type="button" onClick={() => void submit()} className="icon-button send" style={{ backgroundColor: colors.ink }} aria-label="Enviar lancamento">
-          <SendHorizonal color={colors.bg} size={20} />
+        <button
+          type="button"
+          onClick={() => void submit()}
+          className="icon-button send"
+          style={{ backgroundColor: isDark ? colors.blue : colors.ink }}
+          aria-label="Enviar lancamento"
+        >
+          <SendHorizonal color={isDark ? '#00111F' : colors.bg} size={20} />
         </button>
       </div>
       {preview.length > 0 ? (
@@ -45,7 +52,12 @@ export function QuickEntry() {
                 {item.type === 'income' ? '+' : item.type === 'transfer' ? '' : '-'}{formatCurrency(item.amount)}
               </div>
               <div className="preview-cat" style={{ color: colors.muted }}>
-                {item.type === 'transfer' ? `Transferencia${item.transfer_account_name_hint ? ` para ${item.transfer_account_name_hint}` : ''}` : item.category_name} · {Math.round(item.confidence * 100)}%
+                <CategoryBadge
+                  category={categories.find((category) => category.id === item.category_id)}
+                  label={item.type === 'transfer' ? `Transferencia${item.transfer_account_name_hint ? ` para ${item.transfer_account_name_hint}` : ''}` : item.category_name}
+                  compact
+                />
+                <span>{Math.round(item.confidence * 100)}%</span>
               </div>
             </div>
           ))}

@@ -3,8 +3,20 @@ import { CSSProperties, FormEvent, ReactNode } from 'react';
 import { useTheme } from '@/lib/theme';
 
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
-  const { colors } = useTheme();
-  return <main className={`screen${scroll ? ' scroll' : ''}`} style={{ backgroundColor: colors.bg }}>{children}</main>;
+  const { colors, isDark } = useTheme();
+  return (
+    <main
+      className={`screen${scroll ? ' scroll' : ''}`}
+      style={{
+        backgroundColor: colors.bg,
+        backgroundImage: isDark
+          ? 'radial-gradient(circle at 50% 0%, rgba(47, 128, 255, 0.22), transparent 30rem), linear-gradient(180deg, #00101F 0%, #000813 56%, #000611 100%)'
+          : 'linear-gradient(180deg, #FFFFFF 0%, #F6F8FC 64%)',
+      }}
+    >
+      {children}
+    </main>
+  );
 }
 
 export function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
@@ -14,8 +26,11 @@ export function Card({ children, style }: { children: ReactNode; style?: CSSProp
       className="card"
       style={{
         backgroundColor: colors.surface,
+        backgroundImage: isDark ? 'linear-gradient(180deg, rgba(94, 167, 255, 0.08), rgba(0, 13, 28, 0.08))' : undefined,
         borderColor: colors.line,
-        boxShadow: isDark ? 'none' : '0 12px 24px rgba(17, 24, 39, 0.06)',
+        boxShadow: isDark
+          ? '0 18px 45px rgba(0, 6, 17, 0.46), inset 0 1px 0 rgba(94, 167, 255, 0.08)'
+          : '0 12px 26px rgba(19, 36, 58, 0.06)',
         ...style,
       }}
     >
