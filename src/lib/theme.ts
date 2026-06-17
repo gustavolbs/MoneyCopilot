@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { useThemeStore } from '@/store/themeStore';
 
@@ -33,8 +33,17 @@ export const darkColors = {
 export const colors = lightColors;
 
 export function useTheme() {
-  const scheme = useColorScheme();
   const mode = useThemeStore((state) => state.mode);
+  const [scheme, setScheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = () => setScheme(media.matches ? 'dark' : 'light');
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
   const effectiveScheme = mode === 'system' ? scheme : mode;
   const isDark = effectiveScheme === 'dark';
   const palette = isDark ? darkColors : lightColors;

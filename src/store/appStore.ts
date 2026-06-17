@@ -32,6 +32,15 @@ import { isOnline, listSyncLogs, syncNow } from '@/storage/sync';
 
 type SyncStatus = 'idle' | 'offline' | 'syncing' | 'error';
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((_resolve, reject) => {
+      window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]);
+}
+
 type AppState = {
   bootstrapped: boolean;
   loading: boolean;
@@ -86,36 +95,46 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   bootstrap: async () => {
     set({ loading: true, error: null });
-    await initLocalDb();
-    const online = await isOnline();
-    let session: Session | null = null;
-    if (isSupabaseConfigured()) {
-      const result = await supabase.auth.getSession();
-      session = result.data.session;
-      supabase.auth.onAuthStateChange((_event, nextSession) => {
-        set({ session: nextSession, userId: nextSession?.user.id ?? null });
-        void get().ensureHousehold();
+    try {
+      await initLocalDb();
+      const online = await isOnline();
+      let session: Session | null = null;
+      if (isSupabaseConfigured()) {
+        const result = await withTimeout(supabase.auth.getSession(), 8000, 'Tempo esgotado ao restaurar sessao.');
+        session = result.data.session;
+        supabase.auth.onAuthStateChange((_event, nextSession) => {
+          set({ session: nextSession, userId: nextSession?.user.id ?? null });
+          void get().ensureHousehold();
+        });
+      }
+      const household = await getHousehold();
+      set({
+        session,
+        userId: session?.user.id ?? 'local-user',
+        household,
+        bootstrapped: true,
+        loading: false,
+        syncStatus: online ? 'idle' : 'offline',
+      });
+      // Só cria/garante a household automaticamente quando não há login obrigatório
+      // (Supabase desconfigurado) ou já existe sessão real. Caso contrário a household
+      // nasceria com 'local-user' e quebraria a RLS depois do login.
+      if (!isSupabaseConfigured() || session) await get().ensureHousehold();
+      await get().refresh();
+      if (online) void get().sync();
+    } catch (error) {
+      set({
+        bootstrapped: true,
+        loading: false,
+        userId: 'local-user',
+        syncStatus: 'offline',
+        error: error instanceof Error ? error.message : 'Erro ao iniciar o app.',
       });
     }
-    const household = await getHousehold();
-    set({
-      session,
-      userId: session?.user.id ?? 'local-user',
-      household,
-      bootstrapped: true,
-      loading: false,
-      syncStatus: online ? 'idle' : 'offline',
-    });
-    // Só cria/garante a household automaticamente quando não há login obrigatório
-    // (Supabase desconfigurado) ou já existe sessão real. Caso contrário a household
-    // nasceria com 'local-user' e quebraria a RLS depois do login.
-    if (!isSupabaseConfigured() || session) await get().ensureHousehold();
-    await get().refresh();
-    if (online) void get().sync();
   },
 
   signIn: async (email, password) => {
-    if (!isSupabaseConfigured()) throw new Error('Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    if (!isSupabaseConfigured()) throw new Error('Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.');
     set({ loading: true, error: null });
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
@@ -128,7 +147,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   signUp: async (email, password, fullName) => {
-    if (!isSupabaseConfigured()) throw new Error('Configure EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    if (!isSupabaseConfigured()) throw new Error('Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.');
     set({ loading: true, error: null });
     const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
     if (error) {

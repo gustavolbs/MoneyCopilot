@@ -1,12 +1,13 @@
-import { X } from 'lucide-react-native';
+'use client';
+
+import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { formatCurrency } from '@/domain/normalize';
 import { Category, Transaction, TransactionType } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 
-import { Button, Field, KeyboardAccessory, Label } from './ui';
+import { Button, Field, Label } from './ui';
 
 type Props = {
   transaction: Transaction | null;
@@ -50,78 +51,76 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
   const canSave = description.trim().length > 0 && Number.isFinite(parsedAmount) && parsedAmount >= 0;
 
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.modal, { backgroundColor: colors.bg }]}>
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.title, { color: colors.ink }]}>Editar transacao</Text>
-            <Text style={[styles.subtitle, { color: colors.muted }]}>{formatCurrency(transaction.amount)}</Text>
-          </View>
-          <Pressable onPress={onClose} style={[styles.close, { backgroundColor: colors.subtle }]}>
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="transaction-editor-title">
+      <div className="modal-panel" style={{ backgroundColor: colors.bg }}>
+        <header className="modal-header">
+          <div>
+            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>Editar transacao</h2>
+            <p style={{ color: colors.muted }}>{formatCurrency(transaction.amount)}</p>
+          </div>
+          <button type="button" onClick={onClose} className="icon-button" style={{ backgroundColor: colors.subtle }} aria-label="Fechar">
             <X size={20} color={colors.ink} />
-          </Pressable>
-        </View>
+          </button>
+        </header>
 
-        <KeyboardAvoidingView style={styles.modal} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
-          <View style={styles.group}>
+        <div className="modal-content">
+          <div className="form-group">
             <Label>Descricao</Label>
             <Field value={description} onChangeText={setDescription} placeholder="Nome da transacao" />
-          </View>
+          </div>
 
-          <View style={styles.group}>
+          <div className="form-group">
             <Label>Valor</Label>
             <Field value={amount} onChangeText={setAmount} placeholder="0,00" keyboardType="numeric" />
-          </View>
+          </div>
 
-          <View style={styles.group}>
+          <div className="form-group">
             <Label>Tipo</Label>
-            <View style={styles.segmentRow}>
+            <div className="segment-row">
               {typeOptions.map((option) => (
-                <Pressable
+                <button
+                  type="button"
                   key={option.value}
-                  onPress={() => setType(option.value)}
-                  style={[styles.segment, { backgroundColor: type === option.value ? colors.ink : colors.subtle }]}
+                  onClick={() => setType(option.value)}
+                  className="segment"
+                  style={{ backgroundColor: type === option.value ? colors.ink : colors.subtle, color: type === option.value ? colors.bg : colors.ink }}
                 >
-                  <Text style={{ color: type === option.value ? colors.bg : colors.ink, fontWeight: '500' }}>{option.label}</Text>
-                </Pressable>
+                  {option.label}
+                </button>
               ))}
-            </View>
-          </View>
+            </div>
+          </div>
 
           {type !== 'transfer' ? (
-            <View style={styles.group}>
+            <div className="form-group">
               <Label>Categoria</Label>
-              <View style={styles.categoryGrid}>
+              <div className="chip-grid">
                 {availableCategories.map((category) => (
-                  <Pressable
+                  <button
+                    type="button"
                     key={category.id}
-                    onPress={() => setCategoryId(category.id)}
-                    style={[
-                      styles.categoryChip,
-                      {
-                        backgroundColor: categoryId === category.id ? category.color : colors.subtle,
-                        borderColor: categoryId === category.id ? category.color : colors.line,
-                      },
-                    ]}
+                    onClick={() => setCategoryId(category.id)}
+                    className="chip"
+                    style={{
+                      backgroundColor: categoryId === category.id ? category.color : colors.subtle,
+                      borderColor: categoryId === category.id ? category.color : colors.line,
+                      color: categoryId === category.id ? '#fff' : colors.ink,
+                    }}
                   >
-                    <Text style={{ color: categoryId === category.id ? '#fff' : colors.ink, fontSize: 13, fontWeight: '500' }}>{category.name}</Text>
-                  </Pressable>
+                    {category.name}
+                  </button>
                 ))}
-              </View>
-            </View>
+              </div>
+            </div>
           ) : null}
 
-          <View style={styles.group}>
+          <div className="form-group">
             <Label>Observacao</Label>
             <Field value={notes} onChangeText={setNotes} placeholder="Opcional" multiline />
-          </View>
-        </ScrollView>
-        </KeyboardAvoidingView>
+          </div>
+        </div>
 
-        <KeyboardAccessory />
-
-        <View style={[styles.footer, { borderTopColor: colors.line }]}>
+        <footer className="modal-footer" style={{ borderColor: colors.line }}>
           <Button onPress={() => void onDelete()} variant="ghost">Excluir</Button>
           <Button
             onPress={() => {
@@ -137,38 +136,8 @@ export function TransactionEditor({ transaction, categories, onClose, onSave, on
           >
             Salvar
           </Button>
-        </View>
-      </View>
-    </Modal>
+        </footer>
+      </div>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  modal: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: { fontSize: 22, fontWeight: '600' },
-  subtitle: { marginTop: 3, fontSize: 13 },
-  close: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 20, gap: 18, paddingBottom: 120 },
-  group: { gap: 8 },
-  segmentRow: { flexDirection: 'row', gap: 8 },
-  segment: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 9 },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    padding: 16,
-    gap: 10,
-  },
-});

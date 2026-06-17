@@ -1,30 +1,21 @@
-import * as Network from 'expo-network';
-
 import { isSupabaseConfigured } from '@/lib/env';
 import { createId } from '@/lib/id';
 import { supabase } from '@/lib/supabase';
 
-import { getDb } from './db';
-
-type QueueRow = {
-  id: string;
-  table_name: string;
-  row_id: string;
-  operation: 'upsert' | 'delete';
-  payload: string;
-  attempts: number;
-};
+import { readLocalDb, TableName, updateLocalDb } from './db';
 
 const syncTables = ['households', 'household_members', 'accounts', 'categories', 'transactions', 'categorization_rules', 'budgets', 'recurrences'] as const;
 
 async function logSync(level: 'info' | 'error', message: string) {
-  const db = await getDb();
-  await db.runAsync('INSERT INTO sync_logs (id, level, message, created_at) VALUES (?, ?, ?, ?)', createId(), level, message, new Date().toISOString());
+  await updateLocalDb((db) => {
+    db.sync_logs.unshift({ id: createId(), level, message, created_at: new Date().toISOString() });
+    db.sync_logs = db.sync_logs.slice(0, 30);
+  });
 }
 
 export async function isOnline() {
-  const state = await Network.getNetworkStateAsync();
-  return Boolean(state.isConnected && state.isInternetReachable !== false);
+  if (typeof navigator === 'undefined') return true;
+  return navigator.onLine;
 }
 
 export async function syncNow(householdId?: string) {
@@ -37,35 +28,28 @@ export async function syncNow(householdId?: string) {
     return { pushed: 0, pulled: 0, skipped: true };
   }
 
-  const db = await getDb();
-  // Ordena por dependência (tabelas-pai antes das filhas) e depois por created_at,
-  // para que household/membership subam antes de accounts/transactions e a RLS passe.
-  const queue = await db.getAllAsync<QueueRow>(
-    `SELECT * FROM mutation_queue
-     ORDER BY
-       CASE table_name
-         WHEN 'households' THEN 0
-         WHEN 'household_members' THEN 1
-         WHEN 'accounts' THEN 2
-         WHEN 'categories' THEN 3
-         WHEN 'categorization_rules' THEN 4
-         WHEN 'budgets' THEN 5
-         WHEN 'recurrences' THEN 6
-         WHEN 'transactions' THEN 7
-         ELSE 8
-       END,
-       created_at ASC
-     LIMIT 100`,
-  );
+  const queue = (await readLocalDb()).mutation_queue
+    .slice()
+    .sort((a, b) => tableOrder(a.table_name) - tableOrder(b.table_name) || a.created_at.localeCompare(b.created_at))
+    .slice(0, 100);
+
   let pushed = 0;
   for (const item of queue) {
     const payload = JSON.parse(item.payload) as Record<string, unknown>;
     const { error } = await supabase.from(item.table_name).upsert(payload, { onConflict: 'id' });
     if (error) {
-      await db.runAsync('UPDATE mutation_queue SET attempts = attempts + 1, last_error = ? WHERE id = ?', error.message, item.id);
+      await updateLocalDb((db) => {
+        const queued = db.mutation_queue.find((row) => row.id === item.id);
+        if (queued) {
+          queued.attempts += 1;
+          queued.last_error = error.message;
+        }
+      });
       await logSync('error', `${item.table_name}:${item.row_id} falhou: ${error.message}`);
     } else {
-      await db.runAsync('DELETE FROM mutation_queue WHERE id = ?', item.id);
+      await updateLocalDb((db) => {
+        db.mutation_queue = db.mutation_queue.filter((row) => row.id !== item.id);
+      });
       pushed += 1;
     }
   }
@@ -73,12 +57,10 @@ export async function syncNow(householdId?: string) {
   let pulled = 0;
   if (householdId) {
     for (const table of syncTables) {
-      const lastState = await db.getFirstAsync<{ last_pulled_at: string | null }>('SELECT last_pulled_at FROM sync_state WHERE table_name = ?', table);
+      const state = await readLocalDb();
       let query = supabase.from(table).select('*');
       if (table !== 'households' && table !== 'household_members') query = query.eq('household_id', householdId);
-      if (lastState?.last_pulled_at && table !== 'households' && table !== 'household_members') {
-        query = query.gt('updated_at', lastState.last_pulled_at);
-      }
+      if (state.sync_state[table] && table !== 'households' && table !== 'household_members') query = query.gt('updated_at', state.sync_state[table]);
       const { data, error } = await query.limit(500);
       if (error) {
         await logSync('error', `${table} pull falhou: ${error.message}`);
@@ -88,7 +70,9 @@ export async function syncNow(householdId?: string) {
         await upsertLocalRow(table, row as Record<string, unknown>);
         pulled += 1;
       }
-      await db.runAsync('INSERT OR REPLACE INTO sync_state (table_name, last_pulled_at) VALUES (?, ?)', table, new Date().toISOString());
+      await updateLocalDb((db) => {
+        db.sync_state[table] = new Date().toISOString();
+      });
     }
   }
 
@@ -96,21 +80,30 @@ export async function syncNow(householdId?: string) {
   return { pushed, pulled, skipped: false };
 }
 
-async function upsertLocalRow(tableName: string, row: Record<string, unknown>) {
-  const db = await getDb();
-  const columns = Object.keys(row);
-  const placeholders = columns.map(() => '?').join(', ');
-  const values = columns.map((key) => {
-    const value = row[key];
-    if (typeof value === 'boolean') return value ? 1 : 0;
-    return value as SQLiteBindValue;
-  });
-  await db.runAsync(`INSERT OR REPLACE INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`, ...values);
+function tableOrder(table: TableName) {
+  return {
+    households: 0,
+    household_members: 1,
+    accounts: 2,
+    categories: 3,
+    categorization_rules: 4,
+    budgets: 5,
+    recurrences: 6,
+    transactions: 7,
+    profiles: 8,
+  }[table];
 }
 
-type SQLiteBindValue = string | number | null;
+async function upsertLocalRow(tableName: (typeof syncTables)[number], row: Record<string, unknown>) {
+  await updateLocalDb((db) => {
+    const table = db[tableName] as Array<Record<string, unknown>>;
+    const index = table.findIndex((item) => item.id === row.id);
+    if (index >= 0) table[index] = row;
+    else table.push(row);
+  });
+}
 
 export async function listSyncLogs() {
-  const db = await getDb();
-  return db.getAllAsync<{ level: string; message: string; created_at: string }>('SELECT level, message, created_at FROM sync_logs ORDER BY created_at DESC LIMIT 30');
+  const db = await readLocalDb();
+  return db.sync_logs.map(({ level, message, created_at }) => ({ level, message, created_at })).slice(0, 30);
 }

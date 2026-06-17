@@ -1,4 +1,5 @@
-import { Alert, Pressable, Text, View } from 'react-native';
+'use client';
+
 import { useState } from 'react';
 
 import { SyncPill } from '@/components/SyncPill';
@@ -8,7 +9,7 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
 
-export default function SettingsScreen() {
+export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
   const { colors } = useTheme();
   const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount } = useAppStore();
   const [accountName, setAccountName] = useState('');
@@ -24,16 +25,16 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: 8 }}>
+      <div className="stack small">
         <SyncPill />
         <Label>Organizacao do app</Label>
         <Title>Ajustes</Title>
-      </View>
+      </div>
 
       <Card style={{ gap: 10 }}>
         <Label>Familia</Label>
         <RowItem title={household?.name ?? 'Familia'} subtitle="Dados compartilhados no household" />
-        <RowItem title="Membros" subtitle="Convites por e-mail preparados no Supabase" right={<Text style={{ color: colors.muted }}>Em breve</Text>} />
+        <RowItem title="Membros" subtitle="Convites por e-mail preparados no Supabase" right={<span style={{ color: colors.muted }}>Em breve</span>} />
       </Card>
 
       <Card style={{ gap: 8 }}>
@@ -41,24 +42,21 @@ export default function SettingsScreen() {
         {accounts.map((account) => (
           <RowItem key={account.id} title={account.name} subtitle={account.type === 'reserve' ? 'Cofrinho/Reserva' : account.type} />
         ))}
-        <View style={{ height: 1, backgroundColor: colors.line, marginVertical: 8 }} />
+        <div className="separator" style={{ backgroundColor: colors.line }} />
         <Field value={accountName} onChangeText={setAccountName} placeholder="Ex: Cofrinho Casa" />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <div className="chip-grid">
           {accountTypes.map((item) => (
-            <Pressable
+            <button
+              type="button"
               key={item.value}
-              onPress={() => setAccountType(item.value)}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: accountType === item.value ? colors.ink : colors.subtle,
-              }}
+              onClick={() => setAccountType(item.value)}
+              className="chip"
+              style={{ backgroundColor: accountType === item.value ? colors.ink : colors.subtle, color: accountType === item.value ? colors.bg : colors.ink, borderColor: 'transparent' }}
             >
-              <Text style={{ color: accountType === item.value ? colors.bg : colors.ink, fontWeight: '500', fontSize: 13 }}>{item.label}</Text>
-            </Pressable>
+              {item.label}
+            </button>
           ))}
-        </View>
+        </div>
         <Button
           onPress={() => {
             void addAccount(accountName, accountType);
@@ -82,16 +80,28 @@ export default function SettingsScreen() {
         <RowItem title="Supabase" subtitle={isSupabaseConfigured() ? 'Configurado' : 'Nao configurado'} />
         <Button onPress={() => void sync()} variant="ghost">Sincronizar agora</Button>
         {syncLogs.slice(0, 5).map((log) => (
-          <Text key={`${log.created_at}-${log.message}`} style={{ color: colors.muted, fontSize: 12 }}>{log.created_at.slice(11, 19)} · {log.message}</Text>
+          <p key={`${log.created_at}-${log.message}`} className="sync-log" style={{ color: colors.muted }}>{log.created_at.slice(11, 19)} · {log.message}</p>
         ))}
       </Card>
 
       <Card style={{ gap: 10 }}>
         <Label>Manutencao</Label>
-        <Button onPress={() => Alert.alert('Reset local', 'Apagar cache SQLite local?', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Resetar', style: 'destructive', onPress: () => void resetCache() }])} variant="danger">
+        <Button
+          onPress={() => {
+            if (window.confirm('Apagar cache local?')) void resetCache();
+          }}
+          variant="danger"
+        >
           Reset local cache
         </Button>
-        <Button onPress={() => void signOut()} variant="ghost">Sair</Button>
+        <Button
+          onPress={() => {
+            void signOut().then(onSignedOut);
+          }}
+          variant="ghost"
+        >
+          Sair
+        </Button>
       </Card>
     </Screen>
   );

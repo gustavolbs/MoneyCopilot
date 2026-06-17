@@ -1,6 +1,7 @@
-import { Search } from 'lucide-react-native';
+'use client';
+
+import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
 
 import { TransactionEditor } from '@/components/TransactionEditor';
 import { TransactionRow } from '@/components/TransactionRow';
@@ -10,7 +11,7 @@ import { Transaction } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
 
-export default function TransactionsScreen() {
+export function TransactionsScreen() {
   const { transactions, categories, editTransaction, deleteTransaction } = useAppStore();
   const { colors } = useTheme();
   const [query, setQuery] = useState('');
@@ -22,17 +23,15 @@ export default function TransactionsScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: 8 }}>
+      <div className="stack small">
         <Label>Busca, filtros e edicao</Label>
         <Title>Transacoes</Title>
-      </View>
+      </div>
       <Card style={{ gap: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <div className="search-row">
           <Search color={colors.muted} size={18} />
-          <View style={{ flex: 1 }}>
-            <Field value={query} onChangeText={setQuery} placeholder="Buscar por texto, categoria ou merchant" />
-          </View>
-        </View>
+          <Field value={query} onChangeText={setQuery} placeholder="Buscar por texto, categoria ou merchant" />
+        </div>
       </Card>
       <Card>
         {filtered.map((transaction) => (
@@ -43,7 +42,7 @@ export default function TransactionsScreen() {
             onPress={() => setEditing(transaction)}
           />
         ))}
-        {!filtered.length ? <Text style={{ color: colors.muted }}>Nenhuma transacao encontrada.</Text> : null}
+        {!filtered.length ? <p className="muted" style={{ color: colors.muted }}>Nenhuma transacao encontrada.</p> : null}
       </Card>
       <TransactionEditor
         transaction={editing}

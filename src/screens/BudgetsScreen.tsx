@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+'use client';
 
-import { Card, Field, Label, Screen, Title, Button, RowItem } from '@/components/ui';
+import { useMemo, useState } from 'react';
+
+import { Button, Card, Field, Label, RowItem, Screen, Title } from '@/components/ui';
 import { budgetProgress } from '@/domain/finance';
 import { formatCurrency, monthKey } from '@/domain/normalize';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
 
-export default function BudgetsScreen() {
+export function BudgetsScreen() {
   const { colors } = useTheme();
   const { categories, budgets, transactions, saveBudget } = useAppStore();
   const expenseCategories = categories.filter((item) => item.type === 'expense');
@@ -24,7 +25,7 @@ export default function BudgetsScreen() {
   const create = async () => {
     const parsed = Number(amount.replace(/\./g, '').replace(',', '.'));
     if (!categoryId || !Number.isFinite(parsed) || parsed <= 0) {
-      Alert.alert('Orcamento', 'Informe um valor valido.');
+      window.alert('Informe um valor valido.');
       return;
     }
     await saveBudget(categoryId, parsed);
@@ -33,39 +34,36 @@ export default function BudgetsScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: 8 }}>
+      <div className="stack small">
         <Label>{currentMonth}</Label>
         <Title>Orcamentos</Title>
-      </View>
+      </div>
 
       <Card style={{ gap: 12 }}>
         <Label>Total planejado</Label>
-        <Text style={{ color: colors.ink, fontSize: 30, fontWeight: '600' }}>{formatCurrency(summary.planned)}</Text>
-        <View style={{ height: 9, borderRadius: 99, backgroundColor: colors.subtle, overflow: 'hidden' }}>
-          <View style={{ height: 9, width: `${Math.min(summary.percent * 100, 100)}%`, backgroundColor: summary.percent >= 1 ? colors.red : summary.percent >= 0.8 ? colors.gold : colors.green }} />
-        </View>
-        <Text style={{ color: colors.muted }}>{formatCurrency(summary.spent)} usados no mes</Text>
+        <div className="hero-amount small">{formatCurrency(summary.planned)}</div>
+        <div className="progress-track" style={{ backgroundColor: colors.subtle }}>
+          <div className="progress-fill" style={{ width: `${Math.min(summary.percent * 100, 100)}%`, backgroundColor: summary.percent >= 1 ? colors.red : summary.percent >= 0.8 ? colors.gold : colors.green }} />
+        </div>
+        <p className="muted" style={{ color: colors.muted }}>{formatCurrency(summary.spent)} usados no mes</p>
       </Card>
 
       <Card style={{ gap: 12 }}>
         <Label>Novo orcamento</Label>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <div className="chip-grid">
           {expenseCategories.map((category) => (
-            <Pressable
+            <button
+              type="button"
               key={category.id}
-              onPress={() => setCategoryId(category.id)}
-              style={{
-                borderRadius: 999,
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                backgroundColor: categoryId === category.id ? category.color : colors.subtle,
-              }}
+              onClick={() => setCategoryId(category.id)}
+              className="chip"
+              style={{ backgroundColor: categoryId === category.id ? category.color : colors.subtle, color: categoryId === category.id ? '#fff' : colors.ink, borderColor: 'transparent' }}
             >
-              <Text style={{ color: categoryId === category.id ? '#fff' : colors.ink, fontWeight: '500', fontSize: 13 }}>{category.name}</Text>
-            </Pressable>
+              {category.name}
+            </button>
           ))}
-        </View>
-        <Field value={amount} onChangeText={setAmount} placeholder="Limite mensal. Ex: 2000" keyboardType="numeric" />
+        </div>
+        <Field value={amount} onChangeText={setAmount} placeholder="Limite mensal. Ex: 2000" keyboardType="numeric" onSubmitEditing={() => void create()} />
         <Button onPress={() => void create()}>Salvar orcamento</Button>
       </Card>
 
@@ -75,19 +73,19 @@ export default function BudgetsScreen() {
           const category = categories.find((item) => item.id === budget.category_id);
           const progress = budgetProgress(transactions, budget);
           return (
-            <View key={budget.id} style={{ paddingVertical: 8, gap: 8 }}>
+            <div key={budget.id} className="budget-row">
               <RowItem
                 title={category?.name ?? 'Categoria'}
                 subtitle={`${formatCurrency(progress.spent)} de ${formatCurrency(budget.amount)}`}
-                right={<Text style={{ color: progress.status === 'over' ? colors.red : progress.status === 'warning' ? colors.gold : colors.muted }}>{Math.round(progress.percent * 100)}%</Text>}
+                right={<span style={{ color: progress.status === 'over' ? colors.red : progress.status === 'warning' ? colors.gold : colors.muted }}>{Math.round(progress.percent * 100)}%</span>}
               />
-              <View style={{ height: 8, borderRadius: 99, backgroundColor: colors.subtle, overflow: 'hidden' }}>
-                <View style={{ height: 8, width: `${Math.min(progress.percent * 100, 100)}%`, backgroundColor: progress.status === 'over' ? colors.red : progress.status === 'warning' ? colors.gold : category?.color ?? colors.green }} />
-              </View>
-            </View>
+              <div className="progress-track" style={{ backgroundColor: colors.subtle }}>
+                <div className="progress-fill" style={{ width: `${Math.min(progress.percent * 100, 100)}%`, backgroundColor: progress.status === 'over' ? colors.red : progress.status === 'warning' ? colors.gold : category?.color ?? colors.green }} />
+              </div>
+            </div>
           );
         })}
-        {!monthBudgets.length ? <Text style={{ color: colors.muted, paddingVertical: 10 }}>Nenhum orcamento criado para este mes.</Text> : null}
+        {!monthBudgets.length ? <p className="muted" style={{ color: colors.muted }}>Nenhum orcamento criado para este mes.</p> : null}
       </Card>
 
       <Card style={{ gap: 4 }}>
@@ -96,10 +94,10 @@ export default function BudgetsScreen() {
           const spent = transactions
             .filter((transaction) => transaction.type === 'expense' && transaction.category_id === category.id && transaction.transaction_date.startsWith(currentMonth))
             .reduce((sum, transaction) => sum + transaction.amount, 0);
-        return (
-          <RowItem key={category.id} title={category.name} subtitle={spent > 0 ? `${formatCurrency(spent)} gastos no mes` : 'Sem gastos no mes'} right={<Text style={{ color: colors.muted }}>Adicionar</Text>} onPress={() => setCategoryId(category.id)} />
-        );
-      })}
+          return (
+            <RowItem key={category.id} title={category.name} subtitle={spent > 0 ? `${formatCurrency(spent)} gastos no mes` : 'Sem gastos no mes'} right={<span style={{ color: colors.muted }}>Adicionar</span>} onPress={() => setCategoryId(category.id)} />
+          );
+        })}
       </Card>
     </Screen>
   );

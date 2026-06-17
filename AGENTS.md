@@ -1,3 +1,3 @@
-# Expo HAS CHANGED
+# Next.js HAS CHANGED
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v56.0.0/ before writing any code.
+Read the current Next.js docs at https://nextjs.org/docs before writing framework code.

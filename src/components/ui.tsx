@@ -1,76 +1,56 @@
-import { ReactNode } from 'react';
-import { ActivityIndicator, InputAccessoryView, Keyboard, KeyboardAvoidingView, Platform, Pressable, ReturnKeyTypeOptions, ScrollView, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { CSSProperties, FormEvent, ReactNode } from 'react';
 
 import { useTheme } from '@/lib/theme';
 
-// ID compartilhado da barra "Fechar" acima do teclado (iOS). Necessario porque os
-// teclados numeric/email-address no iOS nao tem tecla de retorno para dispensar.
-export const KEYBOARD_ACCESSORY_ID = 'mc-keyboard-accessory';
-
-export function KeyboardAccessory() {
-  const { colors } = useTheme();
-  if (Platform.OS !== 'ios') return null;
-  return (
-    <InputAccessoryView nativeID={KEYBOARD_ACCESSORY_ID}>
-      <View style={[styles.accessory, { backgroundColor: colors.elevated, borderTopColor: colors.line }]}>
-        <Pressable onPress={() => Keyboard.dismiss()} hitSlop={10} style={styles.accessoryBtn}>
-          <Text style={[styles.accessoryText, { color: colors.blue }]}>Fechar</Text>
-        </Pressable>
-      </View>
-    </InputAccessoryView>
-  );
-}
-
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
   const { colors } = useTheme();
-  const content = <View style={styles.content}>{children}</View>;
+  return <main className={`screen${scroll ? ' scroll' : ''}`} style={{ backgroundColor: colors.bg }}>{children}</main>;
+}
+
+export function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  const { colors, isDark } = useTheme();
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.bg }]}>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        {scroll ? (
-          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-            {content}
-          </ScrollView>
-        ) : (
-          content
-        )}
-      </KeyboardAvoidingView>
-      <KeyboardAccessory />
-    </SafeAreaView>
+    <section
+      className="card"
+      style={{
+        backgroundColor: colors.surface,
+        borderColor: colors.line,
+        boxShadow: isDark ? 'none' : '0 12px 24px rgba(17, 24, 39, 0.06)',
+        ...style,
+      }}
+    >
+      {children}
+    </section>
   );
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
-  const { colors, isDark } = useTheme();
-  return <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.line, shadowOpacity: isDark ? 0 : 0.06 }, style]}>{children}</View>;
+export function Title({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  const { colors } = useTheme();
+  return <h1 className="title" style={{ color: colors.ink, ...style }}>{children}</h1>;
 }
 
-export function Title({ children, style }: { children: ReactNode; style?: TextStyle }) {
+export function Label({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   const { colors } = useTheme();
-  return <Text style={[styles.title, { color: colors.ink }, style]}>{children}</Text>;
-}
-
-export function Label({ children, style }: { children: ReactNode; style?: TextStyle }) {
-  const { colors } = useTheme();
-  return <Text style={[styles.label, { color: colors.muted }, style]}>{children}</Text>;
+  return <div className="label" style={{ color: colors.muted, ...style }}>{children}</div>;
 }
 
 export function Button({ children, onPress, variant = 'primary', loading = false }: { children: ReactNode; onPress: () => void; variant?: 'primary' | 'ghost' | 'danger'; loading?: boolean }) {
   const { colors } = useTheme();
   const foreground = variant === 'ghost' ? colors.ink : variant === 'primary' ? colors.bg : '#fff';
   return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.button,
-        { backgroundColor: colors.ink },
-        variant === 'ghost' && { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.line },
-        variant === 'danger' && { backgroundColor: colors.red },
-      ]}
+    <button
+      type="button"
+      onClick={onPress}
+      className={`button ${variant}`}
+      disabled={loading}
+      style={{
+        backgroundColor: variant === 'ghost' ? 'transparent' : variant === 'danger' ? colors.red : colors.ink,
+        borderColor: variant === 'ghost' ? colors.line : 'transparent',
+        color: foreground,
+      }}
     >
-      {loading ? <ActivityIndicator color={foreground} /> : <Text style={[styles.buttonText, { color: foreground }]}>{children}</Text>}
-    </Pressable>
+      {loading ? <span className="small-spinner" /> : children}
+    </button>
   );
 }
 
@@ -81,21 +61,28 @@ export function Field(props: {
   secureTextEntry?: boolean;
   multiline?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric';
-  returnKeyType?: ReturnKeyTypeOptions;
   onSubmitEditing?: () => void;
 }) {
   const { colors } = useTheme();
-  const isMultiline = Boolean(props.multiline);
+  const common = {
+    value: props.value,
+    placeholder: props.placeholder,
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => props.onChangeText(event.currentTarget.value),
+    className: `field${props.multiline ? ' multiline' : ''}`,
+    style: { backgroundColor: colors.elevated, borderColor: colors.line, color: colors.ink } as CSSProperties,
+  };
+  const submit = (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !props.multiline && props.onSubmitEditing) props.onSubmitEditing();
+  };
+
+  if (props.multiline) return <textarea {...common} rows={4} />;
+
   return (
-    <TextInput
-      {...props}
-      placeholderTextColor={colors.muted}
-      // Barra "Fechar" no iOS para qualquer teclado (inclui numeric/email sem tecla de retorno).
-      inputAccessoryViewID={Platform.OS === 'ios' ? KEYBOARD_ACCESSORY_ID : undefined}
-      // Campos de uma linha fecham o teclado ao confirmar; multiline mantem a quebra de linha.
-      returnKeyType={props.returnKeyType ?? (isMultiline ? 'default' : 'done')}
-      blurOnSubmit={!isMultiline}
-      style={[styles.field, { backgroundColor: colors.elevated, borderColor: colors.line, color: colors.ink }, isMultiline && styles.multiline]}
+    <input
+      {...common}
+      type={props.secureTextEntry ? 'password' : props.keyboardType === 'email-address' ? 'email' : props.keyboardType === 'numeric' ? 'text' : 'text'}
+      inputMode={props.keyboardType === 'numeric' ? 'decimal' : props.keyboardType === 'email-address' ? 'email' : undefined}
+      onKeyDown={submit}
     />
   );
 }
@@ -104,88 +91,26 @@ export function RowItem({ title, subtitle, right, onPress }: { title: string; su
   const { colors } = useTheme();
   const Content = (
     <>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: colors.ink, fontSize: 15, fontWeight: '500' }} numberOfLines={1}>{title}</Text>
-        {subtitle ? <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }} numberOfLines={1}>{subtitle}</Text> : null}
-      </View>
+      <div className="row-main">
+        <div className="row-title" style={{ color: colors.ink }}>{title}</div>
+        {subtitle ? <div className="row-subtitle" style={{ color: colors.muted }}>{subtitle}</div> : null}
+      </div>
       {right}
     </>
   );
-  return onPress ? <Pressable onPress={onPress} style={styles.rowItem}>{Content}</Pressable> : <View style={styles.rowItem}>{Content}</View>;
+  return onPress ? <button type="button" onClick={onPress} className="row-item as-button">{Content}</button> : <div className="row-item">{Content}</div>;
 }
 
-export const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  content: {
-    padding: 18,
-    gap: 14,
-  },
-  card: {
-    borderRadius: 24,
-    padding: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#111827',
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 2,
-  },
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '600',
-    letterSpacing: 0,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  button: {
-    minHeight: 50,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  field: {
-    minHeight: 52,
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  multiline: {
-    minHeight: 104,
-    paddingTop: 14,
-    textAlignVertical: 'top',
-  },
-  accessory: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  accessoryBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  accessoryText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  rowItem: {
-    minHeight: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-  },
-});
+export function InlineForm({ children, onSubmit }: { children: ReactNode; onSubmit: () => void }) {
+  return (
+    <form
+      className="inline-form"
+      onSubmit={(event: FormEvent) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      {children}
+    </form>
+  );
+}

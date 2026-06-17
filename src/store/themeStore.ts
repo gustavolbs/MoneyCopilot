@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -31,8 +30,9 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'moneycopilot-theme',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ mode: state.mode }),
+      skipHydration: typeof window === 'undefined',
     },
   ),
 );
