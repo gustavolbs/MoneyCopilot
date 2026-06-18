@@ -49,15 +49,29 @@ function initialState(): LocalDbState {
 }
 
 function normalize(state: LocalDbState): LocalDbState {
-  const categoryIds = new Set(state.categories.map((category) => category.id));
-  const categories = [...state.categories];
+  const defaultsById = new Map(defaultCategories.map((category) => [category.id, category]));
+  const categories = state.categories.map((category) => {
+    const defaultCategory = defaultsById.get(category.id);
+    return defaultCategory && category.is_default ? { ...category, name: defaultCategory.name } : category;
+  });
+  const categoryIds = new Set(categories.map((category) => category.id));
   for (const category of defaultCategories) {
     if (!categoryIds.has(category.id)) categories.push(category);
   }
   const accounts = (state.accounts ?? []).map((account) => ({
     ...account,
+    name:
+      account.name === 'Cartao de Credito'
+        ? 'Cartão de Crédito'
+        : account.name === 'Reserva Emergencia'
+          ? 'Reserva Emergência'
+          : account.name,
     credit_card_due_day: account.type === 'credit_card' ? account.credit_card_due_day ?? 10 : null,
     credit_card_best_purchase_day: account.type === 'credit_card' ? account.credit_card_best_purchase_day ?? 3 : null,
+  }));
+  const households = (state.households ?? []).map((household) => ({
+    ...household,
+    name: household.name === 'Familia' ? 'Família' : household.name,
   }));
   const creditCardIds = new Set(accounts.filter((account) => account.type === 'credit_card').map((account) => account.id));
   const transactions = (state.transactions ?? []).map((transaction) => ({
@@ -67,7 +81,7 @@ function normalize(state: LocalDbState): LocalDbState {
         ? transaction.payment_method ?? (transaction.account_id && creditCardIds.has(transaction.account_id) ? 'credit_card' : 'cash')
         : null,
   }));
-  return { ...initialState(), ...state, accounts, transactions, categories };
+  return { ...initialState(), ...state, households, accounts, transactions, categories };
 }
 
 export async function initLocalDb() {

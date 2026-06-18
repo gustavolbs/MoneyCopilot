@@ -6,7 +6,7 @@ export function CategoryBars({ metrics }: { metrics: DashboardMetrics }) {
   const { colors } = useTheme();
 
   if (!metrics.byCategory.length) {
-    return <p className="muted" style={{ color: colors.muted }}>Sem despesas neste mes.</p>;
+    return <p className="muted" style={{ color: colors.muted }}>Sem despesas neste mês.</p>;
   }
 
   return (

@@ -195,7 +195,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ session: null, userId: null });
   },
 
-  ensureHousehold: async (name = 'Familia') => {
+  ensureHousehold: async (name = 'Família') => {
     const userId = get().userId ?? 'local-user';
     const authenticated = !isSupabaseConfigured() || (Boolean(get().session) && userId !== 'local-user');
     let household = get().household ?? (await getHousehold());
@@ -319,7 +319,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await get().refresh();
       set({ syncStatus: 'idle' });
     } catch (error) {
-      set({ syncStatus: 'error', error: error instanceof Error ? error.message : 'Erro de sincronizacao' });
+      set({ syncStatus: 'error', error: error instanceof Error ? error.message : 'Erro de sincronização' });
     }
   },
 

@@ -20,7 +20,7 @@ export async function isOnline() {
 
 export async function syncNow(householdId?: string) {
   if (!isSupabaseConfigured()) {
-    await logSync('info', 'Supabase nao configurado; sync remoto ignorado.');
+    await logSync('info', 'Supabase não configurado; sync remoto ignorado.');
     return { pushed: 0, pulled: 0, skipped: true };
   }
   if (!(await isOnline())) {

@@ -26,7 +26,7 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: () => void }) {
   };
 
   const localMode = async () => {
-    await ensureHousehold('Familia');
+    await ensureHousehold('Família');
     await refresh();
     onSignedIn();
   };
@@ -44,12 +44,12 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: () => void }) {
         <Field value={password} onChangeText={setPassword} placeholder="Senha" secureTextEntry onSubmitEditing={() => void submit()} />
         <Button onPress={() => void submit()} loading={loading}>{mode === 'signup' ? 'Criar conta' : 'Entrar'}</Button>
         <Button onPress={() => setMode(mode === 'signup' ? 'login' : 'signup')} variant="ghost">
-          {mode === 'signup' ? 'Ja tenho conta' : 'Criar nova conta'}
+          {mode === 'signup' ? 'Já tenho conta' : 'Criar nova conta'}
         </Button>
       </Card>
       {!isSupabaseConfigured() ? (
         <Card style={{ gap: 10 }}>
-          <Label>Supabase nao configurado</Label>
+          <Label>Supabase não configurado</Label>
           <p className="muted" style={{ color: colors.muted }}>Use modo local para testar o app. Depois preencha `.env.local` para auth e sync remoto.</p>
           <Button onPress={() => void localMode()} variant="ghost">Entrar em modo local</Button>
         </Card>

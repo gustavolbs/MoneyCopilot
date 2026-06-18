@@ -23,7 +23,7 @@ export function TransactionRow({
         ? colors.blue
         : colors.red;
   const fallbackLabel =
-    transaction.type === "transfer" ? "Transferencia" : "Outros";
+    transaction.type === "transfer" ? "Transferência" : "Outros";
   const amount = `${transaction.type === "income" ? "+" : transaction.type === "transfer" ? "" : "-"}${formatCurrency(transaction.amount)}`;
   const card = accounts.find(
     (account) =>
@@ -32,7 +32,7 @@ export function TransactionRow({
   const paymentLabel =
     transaction.type === "expense"
       ? transaction.payment_method === "credit_card"
-        ? (card?.name ?? "Cartao de credito")
+        ? (card?.name ?? "Cartão de crédito")
         : "À vista"
       : "-";
   const effectiveDate = transactionEffectiveDate(transaction, accounts);

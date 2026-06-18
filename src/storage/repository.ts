@@ -76,7 +76,7 @@ export async function getHousehold(): Promise<Household | null> {
   return [...db.households].sort((a, b) => a.created_at.localeCompare(b.created_at))[0] ?? null;
 }
 
-export async function createLocalHousehold(userId: string, name = 'Familia') {
+export async function createLocalHousehold(userId: string, name = 'Família') {
   const createdAt = now();
   const household: Household = { id: createId(), name, created_by: userId, created_at: createdAt };
   const member = { id: createId(), household_id: household.id, user_id: userId, role: 'owner', created_at: createdAt };
@@ -243,9 +243,9 @@ export async function seedDefaultAccounts(householdId: string) {
   if (existing > 0) return;
   const defaults: Array<Pick<Account, 'name' | 'type'>> = [
     { name: 'Conta Corrente', type: 'checking' },
-    { name: 'Cartao de Credito', type: 'credit_card' },
+    { name: 'Cartão de Crédito', type: 'credit_card' },
     { name: 'Dinheiro', type: 'cash' },
-    { name: 'Reserva Emergencia', type: 'reserve' },
+    { name: 'Reserva Emergência', type: 'reserve' },
     { name: 'Investimentos', type: 'investment' },
     { name: 'Outros', type: 'other' },
   ];

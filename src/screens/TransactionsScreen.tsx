@@ -33,12 +33,12 @@ export function TransactionsScreen() {
   return (
     <Screen>
       <div className="stack small">
-        <Label>Busca, filtros e edicao</Label>
-        <Title>Transacoes</Title>
+        <Label>Busca, filtros e edição</Label>
+        <Title>Transações</Title>
       </div>
       <PeriodNotice
-        label="Periodo observado: todo o historico"
-        detail="A data da compra aparece na primeira coluna; compras no cartao mostram tambem o vencimento da fatura."
+        label="Período observado: todo o histórico"
+        detail="A data da compra aparece na primeira coluna; compras no cartão mostram também o vencimento da fatura."
       />
       <Card style={{ gap: 10 }}>
         <div className="search-row">
@@ -80,7 +80,7 @@ export function TransactionsScreen() {
         ) : null}
         {!filtered.length ? (
           <p className="muted" style={{ color: colors.muted }}>
-            Nenhuma transacao encontrada.
+            Nenhuma transação encontrada.
           </p>
         ) : null}
       </Card>

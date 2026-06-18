@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'MoneyCopilot',
     short_name: 'MoneyCopilot',
-    description: 'PWA privado de gestao financeira offline-first.',
+    description: 'PWA privado de gestão financeira offline-first.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

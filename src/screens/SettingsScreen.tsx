@@ -34,12 +34,12 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
       await inviteMember(inviteEmail);
       setInviteEmail('');
     } catch (error) {
-      setFamilyError(error instanceof Error ? error.message : 'Nao foi possivel convidar.');
+      setFamilyError(error instanceof Error ? error.message : 'Não foi possível convidar.');
     }
   };
   const accountTypes: Array<{ label: string; value: Account['type'] }> = [
     { label: 'Conta corrente', value: 'checking' },
-    { label: 'Cartao de credito', value: 'credit_card' },
+    { label: 'Cartão de crédito', value: 'credit_card' },
     { label: 'Dinheiro', value: 'cash' },
     { label: 'Cofrinho/Reserva', value: 'reserve' },
     { label: 'Investimento', value: 'investment' },
@@ -50,33 +50,33 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
     <Screen>
       <div className="stack small">
         <SyncPill />
-        <Label>Organizacao do app</Label>
+        <Label>Organização do app</Label>
         <Title>Ajustes</Title>
       </div>
 
       <Card style={{ gap: 8, padding: 12 }}>
         <SettingsSectionHeader
           icon={<Users size={18} />}
-          title="Familia"
+          title="Família"
           summary={`${familyMembers.length} membro(s) · ${familyInvites.length} convite(s)`}
           color={colors.blue}
           open={openSection === 'family'}
           onToggle={() => setOpenSection(openSection === 'family' ? null : 'family')}
         />
         {openSection === 'family' ? <div className="settings-collapsible-content">
-        <RowItem title={household?.name ?? 'Familia'} subtitle="Dados compartilhados no household" />
+        <RowItem title={household?.name ?? 'Família'} subtitle="Dados compartilhados no household" />
 
         {familyMembers.map((member) => (
           <RowItem
             key={member.user_id}
-            title={member.isYou ? `${member.name} (voce)` : member.name}
-            subtitle={member.role === 'owner' ? 'Responsavel' : 'Membro'}
+            title={member.isYou ? `${member.name} (você)` : member.name}
+            subtitle={member.role === 'owner' ? 'Responsável' : 'Membro'}
             right={
               isOwner && !member.isYou ? (
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm(`Remover ${member.name} da familia?`)) void removeMember(member.user_id);
+                    if (window.confirm(`Remover ${member.name} da família?`)) void removeMember(member.user_id);
                   }}
                   className="chip"
                   style={{ backgroundColor: colors.subtle, color: colors.red, borderColor: 'transparent' }}
@@ -101,10 +101,10 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
             <Field value={inviteEmail} onChangeText={setInviteEmail} placeholder="email@exemplo.com" keyboardType="email-address" />
             <Button onPress={() => void handleInvite()} variant="ghost">Enviar convite</Button>
             {familyError ? <p className="sync-log" style={{ color: colors.red }}>{familyError}</p> : null}
-            <p className="sync-log" style={{ color: colors.muted }}>A pessoa entra na familia ao criar conta ou logar com esse e-mail.</p>
+            <p className="sync-log" style={{ color: colors.muted }}>A pessoa entra na família ao criar conta ou acessar com esse e-mail.</p>
           </>
         ) : (
-          <p className="sync-log" style={{ color: colors.muted }}>Apenas o responsavel pode convidar novos membros.</p>
+          <p className="sync-log" style={{ color: colors.muted }}>Apenas o responsável pode convidar novos membros.</p>
         )}
         </div> : null}
       </Card>
@@ -112,8 +112,8 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
       <Card style={{ gap: 8, padding: 12 }}>
         <SettingsSectionHeader
           icon={<WalletCards size={18} />}
-          title="Patrimonio e pagamentos"
-          summary={`${accounts.length} conta(s) · ${accounts.filter((account) => account.type === 'credit_card').length} cartao(oes)`}
+          title="Patrimônio e pagamentos"
+          summary={`${accounts.length} conta(s) · ${accounts.filter((account) => account.type === 'credit_card').length} cartão(ões)`}
           color={colors.green}
           open={openSection === 'accounts'}
           onToggle={() => setOpenSection(openSection === 'accounts' ? null : 'accounts')}
@@ -133,7 +133,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
                 account.type === 'reserve'
                   ? 'Cofrinho/Reserva'
                   : account.type === 'credit_card'
-                    ? `Cartao · vence dia ${account.credit_card_due_day ?? '-'} · melhor compra dia ${account.credit_card_best_purchase_day ?? '-'}`
+                    ? `Cartão · vence dia ${account.credit_card_due_day ?? '-'} · melhor compra dia ${account.credit_card_best_purchase_day ?? '-'}`
                     : account.type
               }
               right={
@@ -199,19 +199,19 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
       <Card style={{ gap: 8, padding: 12 }}>
         <div className="settings-section-heading">
           <span style={{ color: colors.gold, backgroundColor: `${colors.gold}18` }}><WandSparkles size={18} /></span>
-          <div><strong>Automacoes</strong><small style={{ color: colors.muted }}>{rules.length} regras · {recurrences.length} recorrencias · {categories.length} categorias</small></div>
+          <div><strong>Automações</strong><small style={{ color: colors.muted }}>{rules.length} regras · {recurrences.length} recorrências · {categories.length} categorias</small></div>
         </div>
         <div className="settings-automation-grid">
-          <AutomationItem icon={<Tags size={17} />} title="Categorias" value={categories.length} detail="opcoes disponiveis" color={colors.blue} />
-          <AutomationItem icon={<WandSparkles size={17} />} title="Regras aprendidas" value={rules.length} detail="correcoes memorizadas" color={colors.gold} />
-          <AutomationItem icon={<Repeat2 size={17} />} title="Recorrencias" value={recurrences.length} detail={recurrences.length ? 'previsoes ativas' : 'nenhuma ativa'} color={colors.green} />
+          <AutomationItem icon={<Tags size={17} />} title="Categorias" value={categories.length} detail="opções disponíveis" color={colors.blue} />
+          <AutomationItem icon={<WandSparkles size={17} />} title="Regras aprendidas" value={rules.length} detail="correções memorizadas" color={colors.gold} />
+          <AutomationItem icon={<Repeat2 size={17} />} title="Recorrências" value={recurrences.length} detail={recurrences.length ? 'previsões ativas' : 'nenhuma ativa'} color={colors.green} />
         </div>
       </Card>
 
       <Card style={{ gap: 8, padding: 12 }}>
         <SettingsSectionHeader
           icon={<Cloud size={18} />}
-          title="Dados e sincronizacao"
+          title="Dados e sincronização"
           summary={isSupabaseConfigured() ? `${syncLogs.length} evento(s) · nuvem configurada` : 'Dados somente neste dispositivo'}
           color={isSupabaseConfigured() ? colors.green : colors.gold}
           open={openSection === 'sync'}
@@ -228,7 +228,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
       <Card style={{ gap: 8, padding: 12 }}>
         <div className="settings-section-heading">
           <span style={{ color: colors.red, backgroundColor: `${colors.red}18` }}><Database size={18} /></span>
-          <div><Label>Dados locais e acesso</Label><strong>Manutencao</strong></div>
+          <div><Label>Dados locais e acesso</Label><strong>Manutenção</strong></div>
         </div>
         <div className="settings-maintenance-actions">
         <Button
@@ -302,7 +302,7 @@ function AccountEditor({ account, accountTypes, onSave, onCancel }: {
   const save = () => {
     const balance = Number(initialBalance.replace(/\./g, '').replace(',', '.'));
     if (!name.trim() || !Number.isFinite(balance)) {
-      window.alert('Informe nome e saldo inicial validos.');
+      window.alert('Informe nome e saldo inicial válidos.');
       return;
     }
     void onSave({
@@ -341,7 +341,7 @@ function AccountEditor({ account, accountTypes, onSave, onCancel }: {
       ) : null}
       <div className="account-editor-actions">
         <Button onPress={onCancel} variant="ghost">Cancelar</Button>
-        <Button onPress={save}>Salvar alteracoes</Button>
+        <Button onPress={save}>Salvar alterações</Button>
       </div>
     </div>
   );

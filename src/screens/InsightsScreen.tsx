@@ -40,25 +40,25 @@ export function InsightsScreen() {
   return (
     <Screen>
       <div className="stack small">
-        <Label>Leitura da competencia</Label>
+        <Label>Leitura da competência</Label>
         <Title>Insights</Title>
       </div>
 
-      <PeriodNotice label={`Periodo observado: ${monthKey()}`} detail="Comparacoes por competencia, incluindo cartoes no mes de vencimento da fatura." />
+      <PeriodNotice label={`Período observado: ${monthKey()}`} detail="Comparações por competência, incluindo cartões no mês de vencimento da fatura." />
 
       <div className="insights-kpi-grid">
         <VisualMetric icon={<ReceiptText size={18} />} label="Despesas" value={formatCurrency(metrics.expense)} percentage={expenseChange} inverse />
         <VisualMetric icon={<TrendingUp size={18} />} label="Receitas" value={formatCurrency(metrics.income)} percentage={incomeChange} />
         <VisualMetric icon={<PiggyBank size={18} />} label="Taxa de economia" value={savingsRate === null ? "-" : `${Math.round(savingsRate)}%`} percentage={savingsRate} percentageIsValue />
-        <VisualMetric icon={<WalletCards size={18} />} label="Media de despesas" value={formatCurrency(previousExpenseAverage)} percentage={averageExpenseChange} inverse />
+        <VisualMetric icon={<WalletCards size={18} />} label="Média de despesas" value={formatCurrency(previousExpenseAverage)} percentage={averageExpenseChange} inverse />
       </div>
 
       <Card style={{ gap: 16 }}>
         <div className="insights-section-head">
-          <div><Label>Evolucao</Label><strong>Receitas e despesas</strong></div>
+          <div><Label>Evolução</Label><strong>Receitas e despesas</strong></div>
           <div className="insights-chart-legend"><span className="income">Receitas</span><span className="expense">Despesas</span></div>
         </div>
-        <div className="insights-month-chart" aria-label="Comparativo dos ultimos quatro meses">
+        <div className="insights-month-chart" aria-label="Comparativo dos últimos quatro meses">
           {monthlySeries.map((item) => (
             <div className="insights-month-column" key={item.label}>
               <div className="insights-bars">
@@ -73,7 +73,7 @@ export function InsightsScreen() {
 
       <div className="insights-visual-grid">
         <Card style={{ gap: 16 }}>
-          <div className="insights-section-head"><div><Label>Distribuicao</Label><strong>Principais categorias</strong></div></div>
+          <div className="insights-section-head"><div><Label>Distribuição</Label><strong>Principais categorias</strong></div></div>
           {topCategory ? (
             <div className="insights-category-overview">
               <div className="insights-donut" style={{ background: `conic-gradient(${topCategory.category.color} ${topCategory.percent * 100}%, ${colors.subtle} 0)` }}>
@@ -88,21 +88,21 @@ export function InsightsScreen() {
                 ))}
               </div>
             </div>
-          ) : <p className="insights-empty" style={{ color: colors.muted }}>Sem despesas nesta competencia.</p>}
+          ) : <p className="insights-empty" style={{ color: colors.muted }}>Sem despesas nesta competência.</p>}
         </Card>
 
         <Card style={{ gap: 14 }}>
-          <div className="insights-section-head"><div><Label>Destaques</Label><strong>Resumo rapido</strong></div></div>
+          <div className="insights-section-head"><div><Label>Destaques</Label><strong>Resumo rápido</strong></div></div>
           <div className="insights-highlights">
             <Highlight label="Sobra prevista" value={formatCurrency(metrics.projectedClose)} color={metrics.projectedClose >= 0 ? colors.green : colors.red} />
             <Highlight label="Maior despesa" value={largestExpense ? formatCurrency(largestExpense.amount) : "-"} detail={largestExpense?.description} color={colors.red} />
-            <Highlight label="Transferencias" value={String(transferCount)} detail="movimentos internos" color={colors.blue} />
+            <Highlight label="Transferências" value={String(transferCount)} detail="movimentos internos" color={colors.blue} />
           </div>
         </Card>
       </div>
 
       <div className="insights-section-head insights-feed-title">
-        <div><Label>Tendencias</Label><strong>Analise automatica</strong></div>
+        <div><Label>Tendências</Label><strong>Análise automática</strong></div>
       </div>
       <div className="insights-feed-grid">
         {insights.map((insight) => (
@@ -114,7 +114,7 @@ export function InsightsScreen() {
           </Card>
         ))}
       </div>
-      {!insights.length ? <Card><p className="insights-empty" style={{ color: colors.muted }}>Registre mais transacoes para visualizar tendencias.</p></Card> : null}
+      {!insights.length ? <Card><p className="insights-empty" style={{ color: colors.muted }}>Registre mais transações para visualizar tendências.</p></Card> : null}
     </Screen>
   );
 }
@@ -129,7 +129,7 @@ function VisualMetric({ icon, label, value, percentage, inverse = false, percent
     <Card style={{ gap: 8 }}>
       <div className="insight-metric-top"><span style={{ color: colors.blue, backgroundColor: `${colors.blue}18` }}>{icon}</span><Label>{label}</Label></div>
       <strong className="insight-metric-value">{value}</strong>
-      {percentageIsValue ? <small style={{ color: colors.muted }}>sobre a receita do mes</small> : <PercentageValue value={percentage} inverse={inverse} />}
+      {percentageIsValue ? <small style={{ color: colors.muted }}>sobre a receita do mês</small> : <PercentageValue value={percentage} inverse={inverse} />}
     </Card>
   );
 }

@@ -62,9 +62,9 @@ export function DesktopDashboard() {
     <div className="desktop-dashboard">
       <header className="desktop-dashboard-header">
         <div>
-          <span className="desktop-eyebrow">Visao geral</span>
+          <span className="desktop-eyebrow">Visão geral</span>
           <h1>Dashboard</h1>
-          <p>{format(now, "MMMM 'de' yyyy", { locale: ptBR })} · despesas de cartao pela fatura</p>
+          <p>{format(now, "MMMM 'de' yyyy", { locale: ptBR })} · despesas de cartão pela fatura</p>
         </div>
         <div className="desktop-header-actions">
           <SyncPill />
@@ -81,14 +81,14 @@ export function DesktopDashboard() {
       </header>
 
       <section className="desktop-kpi-grid" aria-label="Indicadores principais">
-        <Kpi label="Disponivel" value={formatCurrency(current.availableToSpend)} detail="Saldos livres" tone="blue" />
-        <Kpi label="Receitas" value={formatCurrency(current.income)} detail="Nesta competencia" tone="green" />
-        <Kpi label="Despesas" value={formatCurrency(current.expense)} detail={`${Math.abs(expenseChange * 100).toFixed(0)}% vs. mes anterior`} tone="red" trend={expenseChange} />
+        <Kpi label="Disponível" value={formatCurrency(current.availableToSpend)} detail="Saldos livres" tone="blue" />
+        <Kpi label="Receitas" value={formatCurrency(current.income)} detail="Nesta competência" tone="green" />
+        <Kpi label="Despesas" value={formatCurrency(current.expense)} detail={`${Math.abs(expenseChange * 100).toFixed(0)}% vs. mês anterior`} tone="red" trend={expenseChange} />
         <Kpi label="Sobra prevista" value={formatCurrency(current.projectedClose)} detail={`${Math.round(savingsRate * 100)}% da renda`} tone="gold" />
       </section>
 
       <section className="desktop-dashboard-grid">
-        <DashboardCard className="desktop-spending-card" title="Fluxo mensal" action="Ultimos 6 meses">
+        <DashboardCard className="desktop-spending-card" title="Fluxo mensal" action="Últimos 6 meses">
           <div className="desktop-chart-summary">
             <div><span>Despesas</span><strong>{formatCurrency(current.expense)}</strong></div>
             <div><span>Receitas</span><strong className="positive">{formatCurrency(current.income)}</strong></div>
@@ -96,9 +96,9 @@ export function DesktopDashboard() {
           <CashFlowChart series={series.map((item) => ({ label: item.label, expense: item.metrics.expense, income: item.metrics.income }))} />
         </DashboardCard>
 
-        <DashboardCard className="desktop-networth-card" title="Patrimonio" action={formatCurrency(current.netWorth)}>
+        <DashboardCard className="desktop-networth-card" title="Patrimônio" action={formatCurrency(current.netWorth)}>
           <div className="desktop-networth-summary">
-            <div><span>Disponivel</span><strong>{formatCurrency(current.availableToSpend)}</strong></div>
+            <div><span>Disponível</span><strong>{formatCurrency(current.availableToSpend)}</strong></div>
             <div><span>Reservas</span><strong>{formatCurrency(current.reserveTotal)}</strong></div>
           </div>
           <div className="desktop-account-list">
@@ -108,11 +108,11 @@ export function DesktopDashboard() {
                 <div className="desktop-track"><i style={{ width: `${Math.max((Math.abs(balance) / maxAccountBalance) * 100, 4)}%` }} /></div>
               </div>
             ))}
-            {!accountBalances.length ? <EmptyState text="Cadastre contas para acompanhar seu patrimonio." /> : null}
+            {!accountBalances.length ? <EmptyState text="Cadastre contas para acompanhar seu patrimônio." /> : null}
           </div>
         </DashboardCard>
 
-        <DashboardCard className="desktop-transactions-card" title="Transacoes recentes" action={`${activeTransactions.length} lancamentos`}>
+        <DashboardCard className="desktop-transactions-card" title="Transações recentes" action={`${activeTransactions.length} lançamentos`}>
           {activeTransactions.length ? (
             <div className="transaction-table-wrap compact">
               <table className="transaction-table">
@@ -128,7 +128,7 @@ export function DesktopDashboard() {
                 </tbody>
               </table>
             </div>
-          ) : <EmptyState text="Nenhuma transacao registrada." />}
+          ) : <EmptyState text="Nenhuma transação registrada." />}
         </DashboardCard>
 
         <DashboardCard className="desktop-categories-card" title="Principais categorias" action={`${current.byCategory.length} categorias`}>
@@ -143,15 +143,15 @@ export function DesktopDashboard() {
                 <small>{Math.round(item.percent * 100)}%</small>
               </div>
             ))}
-            {!current.byCategory.length ? <EmptyState text="As categorias aparecerao conforme voce registrar despesas." /> : null}
+            {!current.byCategory.length ? <EmptyState text="As categorias aparecerão conforme você registrar despesas." /> : null}
           </div>
         </DashboardCard>
 
-        <DashboardCard className="desktop-quick-card" title="Lancamento rapido" action="Linguagem natural">
+        <DashboardCard className="desktop-quick-card" title="Lançamento rápido" action="Linguagem natural">
           <QuickEntry />
         </DashboardCard>
 
-        <DashboardCard className="desktop-cards-card" title="Faturas do mes" action={`${cardInvoices.length} cartoes`}>
+        <DashboardCard className="desktop-cards-card" title="Faturas do mês" action={`${cardInvoices.length} cartões`}>
           <div className="desktop-invoice-list">
             {cardInvoices.map(({ account, total }) => (
               <div className="desktop-invoice-row" key={account.id}>
@@ -160,11 +160,11 @@ export function DesktopDashboard() {
                 <b>{formatCurrency(total)}</b>
               </div>
             ))}
-            {!cardInvoices.length ? <EmptyState text="Nenhum cartao de credito cadastrado." /> : null}
+            {!cardInvoices.length ? <EmptyState text="Nenhum cartão de crédito cadastrado." /> : null}
           </div>
         </DashboardCard>
 
-        <DashboardCard className="desktop-insights-card" title="Insights" action="Analise automatica">
+        <DashboardCard className="desktop-insights-card" title="Insights" action="Análise automática">
           <div className="desktop-insight-list">
             {insights.slice(0, 4).map((insight) => (
               <div className={`desktop-insight ${insight.tone}`} key={insight.id}>
@@ -175,13 +175,13 @@ export function DesktopDashboard() {
             {!insights.length ? (
               <div className="desktop-insight good">
                 <span><WalletCards size={16} /></span>
-                <div><strong>Resumo da competencia</strong><p>Registre mais transacoes para receber comparacoes e alertas personalizados.</p></div>
+                <div><strong>Resumo da competência</strong><p>Registre mais transações para receber comparações e alertas personalizados.</p></div>
               </div>
             ) : null}
           </div>
         </DashboardCard>
 
-        <DashboardCard className="desktop-upcoming-card" title="Proximos compromissos" action={`${upcomingRecurrences.length} previstos`}>
+        <DashboardCard className="desktop-upcoming-card" title="Próximos compromissos" action={`${upcomingRecurrences.length} previstos`}>
           <div className="desktop-invoice-list">
             {upcomingRecurrences.map((recurrence) => (
               <div className="desktop-invoice-row" key={recurrence.id}>
@@ -190,7 +190,7 @@ export function DesktopDashboard() {
                 <b>{formatCurrency(recurrence.amount)}</b>
               </div>
             ))}
-            {!upcomingRecurrences.length ? <EmptyState text="Nenhuma recorrencia ativa para os proximos dias." /> : null}
+            {!upcomingRecurrences.length ? <EmptyState text="Nenhuma recorrência ativa para os próximos dias." /> : null}
           </div>
         </DashboardCard>
       </section>
@@ -238,7 +238,7 @@ function CashFlowChart({ series }: { series: Array<{ label: string; expense: num
 
   return (
     <div className="desktop-cashflow-chart" onMouseLeave={() => setActiveIndex(null)}>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Grafico de receitas e despesas dos ultimos seis meses">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Gráfico de receitas e despesas dos últimos seis meses">
         <defs>
           <linearGradient id="desktopExpenseFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--mc-blue)" stopOpacity=".3" /><stop offset="1" stopColor="var(--mc-blue)" stopOpacity="0" /></linearGradient>
         </defs>

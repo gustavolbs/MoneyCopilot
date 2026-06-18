@@ -25,7 +25,7 @@ export function QuickEntry() {
         <textarea
           value={value}
           onChange={(event) => setValue(event.currentTarget.value)}
-          placeholder="Adicionar lancamento..."
+          placeholder="Adicionar lançamento..."
           className="quick-input"
           style={{ color: colors.ink }}
           rows={2}
@@ -38,7 +38,7 @@ export function QuickEntry() {
           onClick={() => void submit()}
           className="icon-button send"
           style={{ backgroundColor: isDark ? colors.blue : colors.ink }}
-          aria-label="Enviar lancamento"
+          aria-label="Enviar lançamento"
         >
           <SendHorizonal color={isDark ? '#00111F' : colors.bg} size={20} />
         </button>
@@ -54,7 +54,7 @@ export function QuickEntry() {
               <div className="preview-cat" style={{ color: colors.muted }}>
                 <CategoryBadge
                   category={categories.find((category) => category.id === item.category_id)}
-                  label={item.type === 'transfer' ? `Transferencia${item.transfer_account_name_hint ? ` para ${item.transfer_account_name_hint}` : ''}` : item.category_name}
+                  label={item.type === 'transfer' ? `Transferência${item.transfer_account_name_hint ? ` para ${item.transfer_account_name_hint}` : ''}` : item.category_name}
                   compact
                 />
                 <span>{Math.round(item.confidence * 100)}%</span>

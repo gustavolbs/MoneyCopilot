@@ -50,7 +50,7 @@ export function BudgetsScreen() {
   const save = async () => {
     const parsed = Number(amount.replace(/\./g, "").replace(",", "."));
     if (!categoryId || !Number.isFinite(parsed) || parsed <= 0) {
-      window.alert("Informe um valor valido.");
+      window.alert("Informe um valor válido.");
       return;
     }
     await saveBudget(categoryId, parsed);
@@ -60,11 +60,11 @@ export function BudgetsScreen() {
   return (
     <Screen>
       <div className="stack small">
-        <Label>Competencia {currentMonth}</Label>
-        <Title>Orcamentos</Title>
+        <Label>Competência {currentMonth}</Label>
+        <Title>Orçamentos</Title>
       </div>
 
-      <PeriodNotice label={`Periodo observado: ${currentMonth}`} detail="Limites acompanham a competencia da compra e o vencimento das faturas." />
+      <PeriodNotice label={`Período observado: ${currentMonth}`} detail="Limites acompanham a competência da compra e o vencimento das faturas." />
 
       <Card style={{ gap: 18 }}>
         <div className="budget-overview">
@@ -79,13 +79,13 @@ export function BudgetsScreen() {
             <strong>{formatCurrency(summary.planned)}</strong>
             <div className="budget-overview-values">
               <div><span style={{ color: colors.muted }}>Gasto</span><b style={{ color: colors.red }}>{formatCurrency(summary.spent)}</b></div>
-              <div><span style={{ color: colors.muted }}>Disponivel</span><b style={{ color: summary.remaining >= 0 ? colors.green : colors.red }}>{formatCurrency(summary.remaining)}</b></div>
+              <div><span style={{ color: colors.muted }}>Disponível</span><b style={{ color: summary.remaining >= 0 ? colors.green : colors.red }}>{formatCurrency(summary.remaining)}</b></div>
             </div>
           </div>
         </div>
         <div className="budget-status-strip">
           <BudgetStatus icon={<CheckCircle2 size={15} />} count={summary.ok} label="No limite" color={colors.green} />
-          <BudgetStatus icon={<AlertTriangle size={15} />} count={summary.warning} label="Atencao" color={colors.gold} />
+          <BudgetStatus icon={<AlertTriangle size={15} />} count={summary.warning} label="Atenção" color={colors.gold} />
           <BudgetStatus icon={<Target size={15} />} count={summary.over} label="Estourados" color={colors.red} />
         </div>
       </Card>
@@ -119,7 +119,7 @@ export function BudgetsScreen() {
           <span className="budget-category-icon" style={{ backgroundColor: `${selectedCategory?.color ?? colors.blue}20`, color: selectedCategory?.color ?? colors.blue }}>{categoryEmoji(selectedCategory)}</span>
           <div><Label>{existingBudget ? "Editar limite" : "Novo limite"}</Label><strong>{selectedCategory?.name ?? "Selecione uma categoria"}</strong></div>
         </div>
-        <div className="budget-category-picker" aria-label="Categorias para orcamento">
+        <div className="budget-category-picker" aria-label="Categorias para orçamento">
           {(existingBudget ? expenseCategories : unbudgetedCategories).map((category) => (
             <CategoryBadge key={category.id} category={category} selected={categoryId === category.id} onClick={() => selectCategory(category.id, monthBudgets.find((budget) => budget.category_id === category.id)?.amount)} />
           ))}
@@ -128,7 +128,7 @@ export function BudgetsScreen() {
           <Field value={amount} onChangeText={setAmount} placeholder="Limite mensal. Ex: 2000" keyboardType="numeric" onSubmitEditing={() => void save()} />
           <Button onPress={() => void save()}>{existingBudget ? "Atualizar limite" : "Adicionar limite"}</Button>
         </div>
-        {!unbudgetedCategories.length && !existingBudget ? <p className="budget-empty" style={{ color: colors.muted }}>Todas as categorias ja possuem limite neste mes.</p> : null}
+        {!unbudgetedCategories.length && !existingBudget ? <p className="budget-empty" style={{ color: colors.muted }}>Todas as categorias já possuem limite neste mês.</p> : null}
       </Card>
     </Screen>
   );

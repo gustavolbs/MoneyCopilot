@@ -22,7 +22,7 @@ type Props = {
 const typeOptions: Array<{ label: string; value: TransactionType }> = [
   { label: 'Despesa', value: 'expense' },
   { label: 'Receita', value: 'income' },
-  { label: 'Transferencia', value: 'transfer' },
+  { label: 'Transferência', value: 'transfer' },
 ];
 
 export function TransactionEditor({ transaction, categories, accounts, onClose, onSave, onDelete }: Props) {
@@ -97,8 +97,8 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
       <div className="modal-panel" style={{ backgroundColor: colors.bg }} onMouseDown={(event) => event.stopPropagation()}>
         <header className="transaction-editor-header">
           <div>
-            <p style={{ color: colors.muted }}>Transacao</p>
-            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>Editar lancamento</h2>
+            <p style={{ color: colors.muted }}>Transação</p>
+            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>Editar lançamento</h2>
           </div>
           <button type="button" onClick={onClose} className="icon-button" style={{ backgroundColor: colors.subtle }} aria-label="Fechar">
             <X size={20} color={colors.ink} />
@@ -108,8 +108,8 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
         <div className="transaction-editor-content">
           <div className="editor-field-grid">
             <label className="editor-field-label">
-              <span style={{ color: colors.muted }}>Descricao</span>
-              <Field value={description} onChangeText={setDescription} placeholder="Nome da transacao" />
+              <span style={{ color: colors.muted }}>Descrição</span>
+              <Field value={description} onChangeText={setDescription} placeholder="Nome da transação" />
             </label>
             <label className="editor-field-label">
               <span style={{ color: colors.muted }}>Valor</span>
@@ -153,25 +153,25 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
                   disabled={!creditCards.length}
                   style={{ backgroundColor: paymentMethod === 'credit_card' ? colors.blue : colors.subtle, color: paymentMethod === 'credit_card' ? '#00111F' : colors.ink }}
                 >
-                  Cartao
+                  Cartão
                 </button>
               </div>
               {paymentMethod === 'credit_card' ? (
                 <label className="editor-field-label">
-                  <span style={{ color: colors.muted }}>Cartao utilizado</span>
+                  <span style={{ color: colors.muted }}>Cartão utilizado</span>
                   <select
                     className="editor-select"
                     value={cardAccountId ?? ''}
                     onChange={(event) => setCardAccountId(event.currentTarget.value || null)}
                     style={{ borderColor: colors.line, backgroundColor: colors.elevated, color: colors.ink }}
                   >
-                    <option value="">Selecione um cartao</option>
+                    <option value="">Selecione um cartão</option>
                     {creditCards.map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}
                   </select>
                   {selectedCard ? <small style={{ color: colors.muted }}>Vence dia {selectedCard.credit_card_due_day ?? '-'} · melhor compra dia {selectedCard.credit_card_best_purchase_day ?? '-'}</small> : null}
                 </label>
               ) : null}
-              <p className="editor-competence" style={{ color: colors.muted }}>Competencia: <strong style={{ color: colors.ink }}>{competenceLabel}</strong></p>
+              <p className="editor-competence" style={{ color: colors.muted }}>Competência: <strong style={{ color: colors.ink }}>{competenceLabel}</strong></p>
             </div>
           ) : null}
 

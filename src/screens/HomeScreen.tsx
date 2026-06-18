@@ -29,7 +29,7 @@ export function HomeScreen() {
     accounts,
   );
   const monthLabel = format(new Date(), "MMMM yyyy", { locale: ptBR });
-  const periodLabel = `Periodo observado: ${format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}`;
+  const periodLabel = `Período observado: ${format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}`;
 
   return (
     <Screen>
@@ -38,7 +38,7 @@ export function HomeScreen() {
         <SyncPill />
         <Label>{monthLabel}</Label>
         <div className="title-row">
-          <Title>Inicio</Title>
+          <Title>Início</Title>
           <button
             type="button"
             onClick={() => toggleDarkMode(colors.bg)}
@@ -61,7 +61,7 @@ export function HomeScreen() {
       <div className="home-dashboard-period">
         <PeriodNotice
           label={periodLabel}
-          detail="Compras a vista entram na data da compra. Compras no cartao entram no mes do vencimento da fatura."
+          detail="Compras à vista entram na data da compra. Compras no cartão entram no mês do vencimento da fatura."
         />
       </div>
 
@@ -79,7 +79,7 @@ export function HomeScreen() {
               : "0 18px 36px rgba(19, 36, 58, 0.08)",
           }}
         >
-          <div style={{ color: isDark ? "#9DCCFF" : "#7A88A6", fontWeight: 700 }}>Saldo disponivel para gastar</div>
+          <div style={{ color: isDark ? "#9DCCFF" : "#7A88A6", fontWeight: 700 }}>Saldo disponível para gastar</div>
           <div className="hero-amount" style={{ color: isDark ? "#F4FAFF" : "#171717" }}>{formatCurrency(metrics.availableToSpend)}</div>
           <div style={{ color: isDark ? "#A9BED6" : "#7A88A6" }}>Contas correntes, dinheiro e outros saldos livres.</div>
         </Card>
@@ -88,7 +88,7 @@ export function HomeScreen() {
           <div className="metric gold">{formatCurrency(metrics.reserveTotal)}</div>
         </Card>
         <Card style={{ gap: 6 }}>
-          <Label>Patrimonio</Label>
+          <Label>Patrimônio</Label>
           <div className="metric green">{formatCurrency(metrics.netWorth)}</div>
         </Card>
         <Card style={{ gap: 6 }}>
@@ -96,14 +96,14 @@ export function HomeScreen() {
           <div className="metric">{formatCurrency(metrics.projectedClose)}</div>
         </Card>
         <Card style={{ gap: 6 }}>
-          <Label>Despesas mes</Label>
+          <Label>Despesas do mês</Label>
           <div className="metric red">{formatCurrency(metrics.expense)}</div>
         </Card>
       </div>
 
       <div className="home-dashboard-panels">
         <Card style={{ gap: 14 }}>
-          <Label>Lancamento rapido</Label>
+          <Label>Lançamento rápido</Label>
           <QuickEntry />
         </Card>
 
@@ -113,7 +113,7 @@ export function HomeScreen() {
         </Card>
 
         <Card>
-          <Label>Recentes (todo o historico)</Label>
+        <Label>Recentes (todo o histórico)</Label>
           {transactions.length ? (
             <div className="transaction-table-wrap compact">
               <table className="transaction-table">
@@ -130,7 +130,7 @@ export function HomeScreen() {
               </table>
             </div>
           ) : null}
-          {!transactions.length ? <p className="muted" style={{ color: colors.muted }}>Nenhum lancamento ainda.</p> : null}
+          {!transactions.length ? <p className="muted" style={{ color: colors.muted }}>Nenhum lançamento ainda.</p> : null}
         </Card>
       </div>
       </div>

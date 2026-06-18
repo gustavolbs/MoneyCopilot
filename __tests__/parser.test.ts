@@ -71,6 +71,7 @@ describe('parseTransactionInput', () => {
     expect(parsed.amount).toBe(40000);
     expect(parsed.type).toBe('income');
     expect(parsed.category_id).toBe('cat_income_salary');
+    expect(parsed.category_name).toBe('Salário');
   });
 
   it('parses Internet - 160 reais', () => {

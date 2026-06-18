@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://carteira-bispo.vercel.app/"),
   title: "MoneyCopilot",
-  description: "PWA privado de gestao financeira offline-first.",
+  description: "PWA privado de gestão financeira offline-first.",
   manifest: "/manifest.webmanifest",
   applicationName: "MoneyCopilot",
   icons: {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     title: "MoneyCopilot",
-    description: "PWA privado de gestao financeira offline-first.",
+    description: "PWA privado de gestão financeira offline-first.",
     siteName: "MoneyCopilot",
     images: [
       { url: "/og-image.png", width: 1200, height: 630, alt: "MoneyCopilot" },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "MoneyCopilot",
-    description: "PWA privado de gestao financeira offline-first.",
+    description: "PWA privado de gestão financeira offline-first.",
     images: ["/og-image.png"],
   },
 };

@@ -47,10 +47,10 @@ export function generateInsights(params: {
     insights.push({
       id: 'expense-month-comparison',
       title: `Despesas ${expenseChange <= 0 ? 'diminuiram' : 'aumentaram'} ${Math.abs(Math.round(expenseChange))}%`,
-      body: `${formatCurrency(currentMetrics.expense)} neste mes contra ${formatCurrency(previousMetrics.expense)} no mes anterior.`,
+      body: `${formatCurrency(currentMetrics.expense)} neste mês contra ${formatCurrency(previousMetrics.expense)} no mês anterior.`,
       tone: expenseChange <= 0 ? 'good' : 'warning',
       percentage: expenseChange,
-      comparison: 'vs. mes anterior',
+      comparison: 'vs. mês anterior',
     });
   }
 
@@ -58,21 +58,21 @@ export function generateInsights(params: {
     insights.push({
       id: 'income-month-comparison',
       title: `Receitas ${incomeChange >= 0 ? 'aumentaram' : 'diminuiram'} ${Math.abs(Math.round(incomeChange))}%`,
-      body: `${formatCurrency(currentMetrics.income)} neste mes contra ${formatCurrency(previousMetrics.income)} no mes anterior.`,
+      body: `${formatCurrency(currentMetrics.income)} neste mês contra ${formatCurrency(previousMetrics.income)} no mês anterior.`,
       tone: incomeChange >= 0 ? 'good' : 'warning',
       percentage: incomeChange,
-      comparison: 'vs. mes anterior',
+      comparison: 'vs. mês anterior',
     });
   }
 
   if (averageChange !== null) {
     insights.push({
       id: 'expense-three-month-average',
-      title: `${Math.abs(Math.round(averageChange))}% ${averageChange <= 0 ? 'abaixo' : 'acima'} da media recente`,
-      body: `Media de despesas dos ${previousMonthsWithExpenses.length} meses anteriores com dados: ${formatCurrency(previousThreeExpenseAverage)}.`,
+      title: `${Math.abs(Math.round(averageChange))}% ${averageChange <= 0 ? 'abaixo' : 'acima'} da média recente`,
+      body: `Média de despesas dos ${previousMonthsWithExpenses.length} meses anteriores com dados: ${formatCurrency(previousThreeExpenseAverage)}.`,
       tone: averageChange <= 0 ? 'good' : 'warning',
       percentage: averageChange,
-      comparison: 'vs. media de 3 meses',
+      comparison: 'vs. média de 3 meses',
     });
   }
 
@@ -100,10 +100,10 @@ export function generateInsights(params: {
       insights.push({
         id: `growth-${category.id}`,
         title: `${category.name} ${change >= 0 ? 'cresceu' : 'diminuiu'} ${Math.abs(Math.round(change))}%`,
-        body: `${formatCurrency(current)} neste mes contra ${formatCurrency(previous)} no mes passado.`,
+        body: `${formatCurrency(current)} neste mês contra ${formatCurrency(previous)} no mês passado.`,
         tone: change >= 0 ? 'warning' : 'good',
         percentage: change,
-        comparison: 'vs. mes anterior',
+        comparison: 'vs. mês anterior',
       });
     }
   }
@@ -115,10 +115,10 @@ export function generateInsights(params: {
       insights.push({
         id: `budget-${budget.id}`,
         title: `${category?.name ?? 'Categoria'} em ${Math.round(progress.percent * 100)}%`,
-        body: `Voce ja usou ${formatCurrency(progress.spent)} de ${formatCurrency(budget.amount)}.`,
+        body: `Você já usou ${formatCurrency(progress.spent)} de ${formatCurrency(budget.amount)}.`,
         tone: progress.percent >= 1 ? 'warning' : 'info',
         percentage: progress.percent * 100,
-        comparison: 'do orcamento',
+        comparison: 'do orçamento',
       });
     }
   }
@@ -127,7 +127,7 @@ export function generateInsights(params: {
     insights.push({
       id: `recurrence-${recurrence.id}`,
       title: `${recurrence.description} parece fixo`,
-      body: `Previsao ${recurrence.frequency === 'monthly' ? 'mensal' : recurrence.frequency} de ${formatCurrency(recurrence.amount)}.`,
+      body: `Previsão ${recurrence.frequency === 'monthly' ? 'mensal' : recurrence.frequency} de ${formatCurrency(recurrence.amount)}.`,
       tone: 'info',
     });
   }

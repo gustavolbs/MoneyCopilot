@@ -34,7 +34,7 @@ export function AppShell<T extends string>({
             <span style={{ color: colors.muted }}>Painel financeiro</span>
           </div>
         </div>
-        <nav className="tab-bar" aria-label="Navegacao principal" style={{ background: colors.surface, borderColor: colors.line }}>
+        <nav className="tab-bar" aria-label="Navegação principal" style={{ background: colors.surface, borderColor: colors.line }}>
           {tabs.map((item) => {
             const Icon = item.icon;
             const active = item.id === activeTab;

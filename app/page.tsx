@@ -17,9 +17,9 @@ import { useAppStore } from '@/store/appStore';
 type TabId = 'home' | 'transactions' | 'budgets' | 'insights' | 'settings';
 
 const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ size?: number; color?: string }> }> = [
-  { id: 'home', label: 'Inicio', icon: Home },
-  { id: 'transactions', label: 'Transacoes', icon: WalletCards },
-  { id: 'budgets', label: 'Orcamentos', icon: BarChart3 },
+  { id: 'home', label: 'Início', icon: Home },
+  { id: 'transactions', label: 'Transações', icon: WalletCards },
+  { id: 'budgets', label: 'Orçamentos', icon: BarChart3 },
   { id: 'insights', label: 'Insights', icon: Lightbulb },
   { id: 'settings', label: 'Ajustes', icon: Settings },
 ];
