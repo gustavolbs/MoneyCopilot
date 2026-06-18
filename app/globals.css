@@ -761,11 +761,12 @@ button {
 }
 
 .reserve-account-card span { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.reserve-account-card small { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .reserve-account-card strong { font-size: 16px; }
 .reserve-create-row { gap: 10px; }
 .reserve-create-row .field { flex: 1; }
 .reserve-create-row .button { flex: 0 0 auto; }
-.reserve-kind-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.reserve-kind-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .reserve-kind-grid button { display: flex; align-items: center; gap: 9px; padding: 11px; }
 .reserve-kind-grid button > span,

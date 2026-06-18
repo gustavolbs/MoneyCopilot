@@ -16,19 +16,20 @@ import {
   reservePositionDelta,
 } from "@/domain/finance";
 import { formatCurrency, formatDate, todayISODate } from "@/domain/normalize";
-import { Transaction } from "@/domain/types";
+import { Account, Transaction } from "@/domain/types";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
 
-type MovementKind = "deposit" | "withdrawal" | "position";
+type MovementKind = "deposit" | "withdrawal" | "income" | "position";
 
 const movementOptions: Array<{
   kind: MovementKind;
   label: string;
   detail: string;
 }> = [
-  { kind: "deposit", label: "Aportar", detail: "Transfere de outra conta" },
+  { kind: "deposit", label: "Transferir", detail: "Move de outra conta" },
   { kind: "withdrawal", label: "Sacar", detail: "Transfere para outra conta" },
+  { kind: "income", label: "Adicionar saldo", detail: "Renda ou dinheiro externo" },
   { kind: "position", label: "Atualizar posição", detail: "Informe o saldo atual" },
 ];
 
@@ -38,8 +39,10 @@ function parseAmount(value: string) {
 }
 
 function movementLabel(transaction: Transaction, delta: number) {
-  if (transaction.notes?.startsWith("reserve_movement:position"))
+  if (transaction.notes?.startsWith("reserve_movement:position") || transaction.notes?.startsWith("account_movement:position"))
     return delta > 0 ? "Rendimento calculado" : "Variação negativa calculada";
+  if (transaction.notes?.startsWith("account_movement:income") || transaction.notes?.startsWith("reserve_movement:income"))
+    return "Saldo adicionado";
   if (
     transaction.type === "income" &&
     transaction.category_id === "cat_income_yield"
@@ -49,20 +52,27 @@ function movementLabel(transaction: Transaction, delta: number) {
   return delta > 0 ? "Entrada patrimonial" : "Saída patrimonial";
 }
 
+function accountTypeLabel(type: Account["type"]) {
+  return {
+    checking: "Conta corrente",
+    credit_card: "Cartão de crédito",
+    cash: "Carteira/Dinheiro",
+    reserve: "Cofrinho/Reserva",
+    investment: "Investimento",
+    other: "Outro",
+  }[type];
+}
+
 export function ReservesScreen() {
-  const { accounts, transactions, addAccount, addReserveMovement } =
+  const { accounts, transactions, addAccount, addBalanceMovement } =
     useAppStore();
   const { colors } = useTheme();
   const reserves = useMemo(
     () => accounts.filter((account) => account.type === "reserve"),
     [accounts],
   );
-  const counterparties = useMemo(
-    () =>
-      accounts.filter(
-        (account) =>
-          account.type !== "reserve" && account.type !== "credit_card",
-      ),
+  const balanceAccounts = useMemo(
+    () => accounts.filter((account) => account.type !== "credit_card"),
     [accounts],
   );
   const balances = useMemo(
@@ -78,11 +88,15 @@ export function ReservesScreen() {
   const [newReserveName, setNewReserveName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const counterparties = useMemo(
+    () => balanceAccounts.filter((account) => account.id !== reserveId),
+    [balanceAccounts, reserveId],
+  );
 
   useEffect(() => {
-    if (!reserves.some((reserve) => reserve.id === reserveId))
-      setReserveId(reserves[0]?.id ?? "");
-  }, [reserveId, reserves]);
+    if (!balanceAccounts.some((account) => account.id === reserveId))
+      setReserveId(balanceAccounts[0]?.id ?? "");
+  }, [balanceAccounts, reserveId]);
 
   useEffect(() => {
     if (!counterparties.some((account) => account.id === counterpartyId))
@@ -90,7 +104,7 @@ export function ReservesScreen() {
   }, [counterparties, counterpartyId]);
 
   const selectedReserve =
-    reserves.find((reserve) => reserve.id === reserveId) ?? null;
+    balanceAccounts.find((account) => account.id === reserveId) ?? null;
   const selectedBalance =
     balances.find(({ account }) => account.id === reserveId)?.balance ?? 0;
   const reserveTotal = balances
@@ -122,19 +136,19 @@ export function ReservesScreen() {
 
   const submitMovement = async () => {
     const numericAmount = parseAmount(amount);
-    if (!selectedReserve) return setError("Selecione um cofrinho.");
+    if (!selectedReserve) return setError("Selecione uma conta ou cofrinho.");
     if (!Number.isFinite(numericAmount) || (kind === "position" ? numericAmount < 0 : numericAmount <= 0))
       return setError(kind === "position" ? "Informe uma posição válida." : "Informe um valor maior que zero.");
     if (kind === "position" && reservePositionDelta(selectedBalance, numericAmount) === 0)
-      return setError("A posição informada já é o saldo atual do cofrinho.");
-    if (kind !== "position" && !counterpartyId)
+      return setError("A posição informada já é o saldo atual.");
+    if ((kind === "deposit" || kind === "withdrawal") && !counterpartyId)
       return setError("Cadastre e selecione uma conta de origem ou destino.");
     setSaving(true);
     setError(null);
     try {
-      await addReserveMovement({
-        reserveAccountId: selectedReserve.id,
-        counterpartyAccountId: kind === "position" ? null : counterpartyId,
+      await addBalanceMovement({
+        accountId: selectedReserve.id,
+        counterpartyAccountId: kind === "deposit" || kind === "withdrawal" ? counterpartyId : null,
         kind,
         amount: numericAmount,
         date,
@@ -165,8 +179,8 @@ export function ReservesScreen() {
         <Label>Patrimônio separado do fluxo mensal</Label>
         <Title>Cofrinhos</Title>
         <p className="reserve-intro" style={{ color: colors.muted }}>
-          Aportes e saques são transferências internas. Para registrar rendimentos,
-          informe a posição atual e o MoneyCopilot calcula a variação.
+          Cofrinhos e contas continuam separados por tipo, mas você pode selecionar
+          qualquer um abaixo para movimentar ou adicionar saldo.
         </p>
       </div>
 
@@ -190,14 +204,14 @@ export function ReservesScreen() {
       <Card style={{ gap: 12 }}>
         <div className="reserve-section-heading">
           <div>
-            <Label>Seus cofrinhos</Label>
-            <strong>Escolha um para movimentar</strong>
+            <Label>Cofrinhos e contas</Label>
+            <strong>Escolha onde movimentar</strong>
           </div>
           <PiggyBank size={22} color={colors.gold} />
         </div>
-        {reserves.length ? (
+        {balanceAccounts.length ? (
           <div className="reserve-account-grid">
-            {reserves.map((reserve) => {
+            {balanceAccounts.map((reserve) => {
               const balance =
                 balances.find(({ account }) => account.id === reserve.id)
                   ?.balance ?? 0;
@@ -217,6 +231,7 @@ export function ReservesScreen() {
                   }}
                 >
                   <span>{reserve.name}</span>
+                  <small style={{ color: colors.muted }}>{accountTypeLabel(reserve.type)}</small>
                   <strong>{formatCurrency(balance)}</strong>
                 </button>
               );
@@ -224,7 +239,7 @@ export function ReservesScreen() {
           </div>
         ) : (
           <p className="reserve-empty" style={{ color: colors.muted }}>
-            Crie seu primeiro cofrinho para começar.
+            Cadastre uma conta ou crie seu primeiro cofrinho para começar.
           </p>
         )}
         <div className="reserve-create-row">
@@ -235,7 +250,7 @@ export function ReservesScreen() {
             onSubmitEditing={() => void createReserve()}
           />
           <Button onPress={() => void createReserve()} variant="ghost">
-            <Plus size={16} /> Criar
+            <Plus size={16} /> Criar cofrinho
           </Button>
         </div>
       </Card>
@@ -267,6 +282,8 @@ export function ReservesScreen() {
                   <ArrowDownLeft size={18} />
                 ) : option.kind === "withdrawal" ? (
                   <ArrowUpRight size={18} />
+                ) : option.kind === "income" ? (
+                  <Plus size={18} />
                 ) : (
                   <ChartNoAxesCombined size={18} />
                 )}
@@ -301,7 +318,7 @@ export function ReservesScreen() {
                 }}
               />
             </label>
-            {kind !== "position" ? (
+            {kind === "deposit" || kind === "withdrawal" ? (
               <label>
                 <span style={{ color: colors.muted }}>
                   {kind === "deposit" ? "Conta de origem" : "Conta de destino"}

@@ -80,8 +80,9 @@ export function isPatrimonialAdjustment(transaction: Transaction, accounts: Acco
   if (transaction.type !== 'income' && transaction.type !== 'expense') return false;
   const account = accounts.find((item) => item.id === transaction.account_id);
   const isPatrimonialAccount = account?.type === 'reserve' || account?.type === 'investment';
-  const isAdjustment = transaction.category_id === 'cat_income_yield' || transaction.notes?.startsWith('reserve_movement:position');
-  return Boolean(isPatrimonialAccount && isAdjustment);
+  const isPositionAdjustment = transaction.notes?.startsWith('reserve_movement:position') || transaction.notes?.startsWith('account_movement:position');
+  const isYieldAdjustment = isPatrimonialAccount && transaction.category_id === 'cat_income_yield';
+  return Boolean(isPositionAdjustment || isYieldAdjustment);
 }
 
 export function reservePositionDelta(currentBalance: number, reportedPosition: number) {
@@ -173,7 +174,9 @@ export function metricsForMonth(
   const reserveTotal = accountBalances
     .filter(({ account }) => account.type === "reserve")
     .reduce((sum, item) => sum + item.balance, 0);
-  const netWorth = accountBalances.reduce((sum, item) => sum + item.balance, 0);
+  const netWorth = accountBalances
+    .filter(({ account }) => account.type !== "credit_card")
+    .reduce((sum, item) => sum + item.balance, 0);
 
   return {
     income,

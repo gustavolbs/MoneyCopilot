@@ -13,9 +13,10 @@ import {
   createLocalHousehold,
   reconcileHouseholdOwnership,
   reconcileHouseholds,
+  reconcileDeletedAccountReferences,
   createRecurrence,
   createAccount,
-  createReserveMovement,
+  createBalanceMovement,
   updateAccount,
   updateAccountCardSettings,
   createTransactionsFromInput,
@@ -94,7 +95,7 @@ type AppState = {
   addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
   editAccount: (account: Account, patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>) => Promise<void>;
   deleteAccount: (account: Account) => Promise<void>;
-  addReserveMovement: (params: { reserveAccountId: string; counterpartyAccountId?: string | null; kind: 'deposit' | 'withdrawal' | 'position'; amount: number; date: string; description?: string }) => Promise<void>;
+  addBalanceMovement: (params: { accountId: string; counterpartyAccountId?: string | null; kind: 'deposit' | 'withdrawal' | 'income' | 'position'; amount: number; date: string; description?: string }) => Promise<void>;
   updateCreditCardSettings: (account: Account, dueDay: number, bestPurchaseDay: number) => Promise<void>;
   loadFamily: () => Promise<void>;
   inviteMember: (email: string) => Promise<void>;
@@ -225,6 +226,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ categories });
       return;
     }
+    await reconcileDeletedAccountReferences(household.id);
     const [accounts, transactions, rules, budgets, recurrences, pendingMutations, syncLogs] = await Promise.all([
       listAccounts(household.id),
       listTransactions(household.id),
@@ -358,10 +360,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     void get().sync();
   },
 
-  addReserveMovement: async (params) => {
+  addBalanceMovement: async (params) => {
     const { household, userId } = get();
     if (!household || !Number.isFinite(params.amount) || (params.kind === 'position' ? params.amount < 0 : params.amount <= 0)) return;
-    await createReserveMovement({ ...params, householdId: household.id, userId });
+    await createBalanceMovement({ ...params, householdId: household.id, userId });
     await get().refresh();
     void get().sync();
   },

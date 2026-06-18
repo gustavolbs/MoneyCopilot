@@ -47,6 +47,18 @@ export async function listAccounts(householdId: string): Promise<Account[]> {
   return db.accounts.filter((row) => row.household_id === householdId && !row.deleted_at).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export async function reconcileDeletedAccountReferences(householdId: string) {
+  return updateLocalDb((db) => {
+    const deletedAccounts = db.accounts.filter((account) => account.household_id === householdId && account.deleted_at);
+    let changed = 0;
+    for (const deleted of deletedAccounts) {
+      const replacement = findDuplicateAccountReplacement(db.accounts, deleted);
+      if (replacement) changed += mergeAccountReferences(db, deleted, replacement);
+    }
+    return changed;
+  });
+}
+
 export async function listRules(householdId: string): Promise<CategorizationRule[]> {
   const db = await readLocalDb();
   return db.categorization_rules.filter((row) => row.household_id === householdId && !row.deleted_at).sort((a, b) => b.priority - a.priority);
@@ -389,20 +401,85 @@ export async function updateAccount(
 
 export async function softDeleteAccount(account: Account) {
   const deletedAt = now();
-  const deleted = { ...account, deleted_at: deletedAt, updated_at: deletedAt };
-  await updateLocalDb((db) => {
+  const deleted = await updateLocalDb<Account>((db) => {
     const index = db.accounts.findIndex((item) => item.id === account.id);
-    if (index >= 0) db.accounts[index] = deleted;
+    if (index < 0) return { ...account, deleted_at: deletedAt, updated_at: deletedAt };
+
+    const storedAccount = db.accounts[index];
+    const replacement = findDuplicateAccountReplacement(db.accounts, storedAccount);
+    if (replacement) mergeAccountReferences(db, storedAccount, replacement);
+
+    const payload = { ...storedAccount, deleted_at: deletedAt, updated_at: deletedAt };
+    db.accounts[index] = payload;
+    return payload;
   });
   await enqueueMutation('accounts', account.id, 'delete', deleted);
 }
 
-export async function createReserveMovement(params: {
+function findDuplicateAccountReplacement(accounts: Account[], account: Account) {
+  const normalizedName = normalizeText(account.name);
+  return accounts.find(
+    (candidate) =>
+      candidate.id !== account.id &&
+      candidate.household_id === account.household_id &&
+      !candidate.deleted_at &&
+      candidate.type === account.type &&
+      normalizeText(candidate.name) === normalizedName,
+  );
+}
+
+function mergeAccountReferences(db: LocalDbState, source: Account, replacement: Account) {
+  const timestamp = now();
+  let changed = 0;
+
+  for (const transaction of db.transactions) {
+    let transactionChanged = false;
+    if (transaction.account_id === source.id) {
+      transaction.account_id = replacement.id;
+      transactionChanged = true;
+    }
+    if (transaction.transfer_account_id === source.id) {
+      transaction.transfer_account_id = replacement.id;
+      transactionChanged = true;
+    }
+    if (transactionChanged) {
+      transaction.updated_at = timestamp;
+      enqueueInline(db, 'transactions', transaction.id, transaction);
+      changed += 1;
+    }
+  }
+  for (const rule of db.categorization_rules) {
+    if (rule.account_id !== source.id) continue;
+    rule.account_id = replacement.id;
+    rule.updated_at = timestamp;
+    enqueueInline(db, 'categorization_rules', rule.id, rule);
+    changed += 1;
+  }
+  for (const recurrence of db.recurrences) {
+    if (recurrence.account_id !== source.id) continue;
+    recurrence.account_id = replacement.id;
+    recurrence.updated_at = timestamp;
+    enqueueInline(db, 'recurrences', recurrence.id, recurrence);
+    changed += 1;
+  }
+  if (source.initial_balance !== 0) {
+    replacement.initial_balance += source.initial_balance;
+    replacement.updated_at = timestamp;
+    source.initial_balance = 0;
+    source.updated_at = timestamp;
+    enqueueInline(db, 'accounts', replacement.id, replacement);
+    enqueueInline(db, 'accounts', source.id, source);
+    changed += 1;
+  }
+  return changed;
+}
+
+export async function createBalanceMovement(params: {
   householdId: string;
   userId: string | null;
-  reserveAccountId: string;
+  accountId: string;
   counterpartyAccountId?: string | null;
-  kind: 'deposit' | 'withdrawal' | 'position';
+  kind: 'deposit' | 'withdrawal' | 'income' | 'position';
   amount: number;
   date: string;
   description?: string;
@@ -417,44 +494,45 @@ export async function createReserveMovement(params: {
 
   const db = await readLocalDb();
   const activeAccounts = db.accounts.filter((account) => account.household_id === params.householdId && !account.deleted_at);
-  const reserve = activeAccounts.find((account) => account.id === params.reserveAccountId);
-  if (!reserve || reserve.type !== 'reserve') throw new Error('Cofrinho inválido.');
+  const target = activeAccounts.find((account) => account.id === params.accountId);
+  if (!target || target.type === 'credit_card') throw new Error('Conta ou cofrinho inválido.');
 
   const householdTransactions = db.transactions.filter((transaction) => transaction.household_id === params.householdId);
-  const reserveBalance = calculateAccountBalances(householdTransactions, activeAccounts)
-    .find(({ account }) => account.id === reserve.id)?.balance ?? 0;
+  const targetBalance = calculateAccountBalances(householdTransactions, activeAccounts)
+    .find(({ account }) => account.id === target.id)?.balance ?? 0;
 
   const createdAt = now();
+  const isIncome = params.kind === 'income';
   const isDeposit = params.kind === 'deposit';
-  if (!isPosition && !params.counterpartyAccountId) throw new Error('Selecione a conta de origem ou destino.');
+  if (!isPosition && !isIncome && !params.counterpartyAccountId) throw new Error('Selecione a conta de origem ou destino.');
   const counterparty = params.counterpartyAccountId
     ? activeAccounts.find((account) => account.id === params.counterpartyAccountId)
     : null;
-  if (!isPosition && !counterparty) throw new Error('Conta de origem ou destino inválida.');
-  if (counterparty?.id === reserve.id) throw new Error('Selecione uma conta diferente do cofrinho.');
+  if (!isPosition && !isIncome && (!counterparty || counterparty.type === 'credit_card')) throw new Error('Conta de origem ou destino inválida.');
+  if (counterparty?.id === target.id) throw new Error('Selecione uma conta diferente da conta movimentada.');
   if (params.kind === 'withdrawal') {
-    if (params.amount > reserveBalance) throw new Error('O saque não pode ser maior que o saldo do cofrinho.');
+    if (params.amount > targetBalance) throw new Error('A retirada não pode ser maior que o saldo disponível.');
   }
 
-  const positionDelta = isPosition ? reservePositionDelta(reserveBalance, params.amount) : 0;
+  const positionDelta = isPosition ? reservePositionDelta(targetBalance, params.amount) : 0;
   if (isPosition && positionDelta === 0) throw new Error('A posição informada já é o saldo atual do cofrinho.');
   const movementAmount = isPosition ? Math.abs(positionDelta) : params.amount;
 
-  const description = params.description?.trim() || (isPosition ? 'Atualização da posição do cofrinho' : isDeposit ? 'Aporte no cofrinho' : 'Saque do cofrinho');
+  const description = params.description?.trim() || (isPosition ? `Atualização da posição de ${target.name}` : isIncome ? `Entrada em ${target.name}` : isDeposit ? `Aporte em ${target.name}` : `Retirada de ${target.name}`);
   const transaction: Transaction = {
     id: createId(),
     household_id: params.householdId,
-    account_id: isPosition || !isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
-    transfer_account_id: isPosition ? null : isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
-    category_id: isPosition ? 'cat_income_yield' : null,
+    account_id: isPosition || isIncome || !isDeposit ? params.accountId : params.counterpartyAccountId!,
+    transfer_account_id: isPosition || isIncome ? null : isDeposit ? params.accountId : params.counterpartyAccountId!,
+    category_id: isPosition ? 'cat_income_yield' : isIncome ? 'cat_income_other' : null,
     created_by: params.userId,
     description,
     normalized_description: normalizeText(description),
     amount: movementAmount,
-    type: isPosition ? (positionDelta > 0 ? 'income' : 'expense') : 'transfer',
+    type: isPosition ? (positionDelta > 0 ? 'income' : 'expense') : isIncome ? 'income' : 'transfer',
     transaction_date: params.date,
     payment_method: null,
-    notes: isPosition ? `reserve_movement:position;reported_position:${params.amount}` : `reserve_movement:${params.kind}`,
+    notes: isPosition ? `account_movement:position;reported_position:${params.amount}` : `account_movement:${params.kind}`,
     source: 'manual',
     recurrence_id: null,
     created_at: createdAt,

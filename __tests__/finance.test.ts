@@ -151,6 +151,43 @@ describe("finance calculations", () => {
     expect(metrics.netWorth).toBe(1025);
   });
 
+  it("keeps credit-card invoices out of available balance and asset total", () => {
+    const checking: Account = {
+      id: "checking",
+      household_id: "h1",
+      name: "Conta Corrente",
+      type: "checking",
+      initial_balance: -100,
+      currency: "BRL",
+      credit_card_due_day: null,
+      credit_card_best_purchase_day: null,
+      created_at: "",
+      updated_at: "",
+      deleted_at: null,
+    };
+    const reserve: Account = { ...checking, id: "reserve", name: "Reserva", type: "reserve", initial_balance: 3875.96 };
+    const card: Account = {
+      ...checking,
+      id: "card",
+      name: "Cartão",
+      type: "credit_card",
+      initial_balance: 0,
+      credit_card_due_day: 10,
+      credit_card_best_purchase_day: 3,
+    };
+    const metrics = metricsForMonth(
+      [tx({ id: "card-expense", account_id: card.id, payment_method: "credit_card", amount: 6692.98 })],
+      defaultCategories,
+      "2026-07",
+      [],
+      [checking, reserve, card],
+    );
+
+    expect(metrics.availableToSpend).toBe(-100);
+    expect(metrics.reserveTotal).toBe(3875.96);
+    expect(metrics.netWorth).toBe(3775.96);
+  });
+
   it("tracks deposits, withdrawals and yield in the reserve history", () => {
     const checking: Account = {
       id: "checking",
