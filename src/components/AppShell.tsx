@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 
+import { BrandLogo } from '@/components/BrandLogo';
 import { useTheme } from '@/lib/theme';
 
 type Tab<T extends string> = {
@@ -25,14 +26,15 @@ export function AppShell<T extends string>({
 
   return (
     <div className="app-shell" style={{ background: colors.bg }}>
-      <div className="app-content">{children}</div>
+      <div className="app-content">
+        <header className="mobile-brand-bar" style={{ backgroundColor: colors.surface, borderColor: colors.line }}>
+          <BrandLogo size={34} tagline="Painel financeiro" />
+        </header>
+        {children}
+      </div>
       <aside className="shell-navigation" style={{ background: colors.surface, borderColor: colors.line }}>
         <div className="desktop-brand">
-          <div className="desktop-brand-mark" style={{ backgroundColor: colors.ink, color: colors.bg }}>M</div>
-          <div>
-            <strong style={{ color: colors.ink }}>MoneyCopilot</strong>
-            <span style={{ color: colors.muted }}>Painel financeiro</span>
-          </div>
+          <BrandLogo size={42} tagline="Painel financeiro" />
         </div>
         <nav className="tab-bar" aria-label="Navegação principal" style={{ background: colors.surface, borderColor: colors.line }}>
           {tabs.map((item) => {

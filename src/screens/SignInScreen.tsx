@@ -3,6 +3,7 @@
 import { ChartNoAxesCombined, Check, Eye, EyeOff, LockKeyhole, ShieldCheck, WalletCards } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 
+import { BrandLogo } from '@/components/BrandLogo';
 import { Button, Screen } from '@/components/ui';
 import { isSupabaseConfigured } from '@/lib/env';
 import { useAppStore } from '@/store/appStore';
@@ -85,10 +86,7 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: () => void }) {
     <Screen>
       <div className="auth-shell">
         <section className="auth-brand-panel" aria-label="MoneyCopilot">
-          <div className="auth-brand">
-            <span className="auth-brand-mark">M</span>
-            <div><strong>MoneyCopilot</strong><small>Seu dinheiro, com direção.</small></div>
-          </div>
+          <BrandLogo size={48} tagline="Seu dinheiro, com direção." className="auth-brand" />
           <div className="auth-pitch">
             <span className="auth-eyebrow">Finanças sem ruído</span>
             <h1>Decisões melhores começam com uma visão clara.</h1>

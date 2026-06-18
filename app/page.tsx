@@ -4,6 +4,7 @@ import { BarChart3, Home, Lightbulb, PiggyBank, Settings, WalletCards } from 'lu
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppShell } from '@/components/AppShell';
+import { BrandLogo } from '@/components/BrandLogo';
 import { SignInScreen } from '@/screens/SignInScreen';
 import { BudgetsScreen } from '@/screens/BudgetsScreen';
 import { HomeScreen } from '@/screens/HomeScreen';
@@ -45,7 +46,10 @@ export default function Page() {
     if (!bootstrapped) {
       return (
         <main className="loading-screen" style={{ background: colors.bg, color: colors.ink }}>
-          <div className="spinner" aria-label="Carregando" />
+          <div className="loading-brand">
+            <BrandLogo size={72} tagline="Organizando seu painel" />
+            <div className="spinner" aria-label="Carregando" />
+          </div>
         </main>
       );
     }
