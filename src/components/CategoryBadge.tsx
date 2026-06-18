@@ -18,6 +18,8 @@ const iconEmoji: Record<string, string> = {
   repeat: '💳',
   wifi: '📡',
   zap: '⚡',
+  hammer: '🔨',
+  scissors: '✂️',
   'shopping-bag': '🛍️',
   sparkles: '✨',
   plane: '✈️',

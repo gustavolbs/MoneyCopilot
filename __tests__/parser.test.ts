@@ -116,6 +116,24 @@ describe('parseTransactionInput', () => {
     expect(parsed.category_id).toBe('cat_expense_investments');
   });
 
+  it.each([
+    ['Conta de gás 120', 'cat_expense_utilities', 'Energia/Água/Gás'],
+    ['Diarista 250', 'cat_expense_home_services', 'Serviços e Manutenção Doméstica'],
+    ['Manutenção da casa 400', 'cat_expense_home_services', 'Serviços e Manutenção Doméstica'],
+    ['Cabelo e sobrancelha 180', 'cat_expense_personal_care', 'Cuidados Pessoais'],
+    ['DAS do CNPJ 350', 'cat_expense_taxes', 'Impostos/PJ'],
+    ['Fralda do dependente 90', 'cat_expense_family', 'Filhos/Dependentes'],
+  ])('categorizes %s', (input, categoryId, categoryName) => {
+    const [parsed] = parseTransactionInput(input, context);
+    expect(parsed.category_id).toBe(categoryId);
+    expect(parsed.category_name).toBe(categoryName);
+  });
+
+  it('does not classify gasoline as household gas', () => {
+    const [parsed] = parseTransactionInput('Gasolina 200', context);
+    expect(parsed.category_id).toBe('cat_expense_transport');
+  });
+
   it('parses multiline blocks', () => {
     const parsed = parseTransactionInput('Outback 250\nSalario +40000\nInternet 160\nAluguel 2400', context);
     expect(parsed).toHaveLength(4);

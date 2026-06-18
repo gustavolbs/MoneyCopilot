@@ -54,7 +54,8 @@ export function suggestCategory(normalized: string, type: TransactionType, categ
 
   const keyword = keywordCategoryMap.find((item) => {
     if (item.type && item.type !== type) return false;
-    return item.keywords.some((word) => normalized.includes(normalizeText(word)));
+    const padded = ` ${normalized} `;
+    return item.keywords.some((word) => padded.includes(` ${normalizeText(word)} `));
   });
 
   if (keyword) {
