@@ -102,6 +102,19 @@ describe('parseTransactionInput', () => {
     expect(parsed.category_id).toBe('cat_expense_market');
   });
 
+  it('categorizes veterinary expenses', () => {
+    const [parsed] = parseTransactionInput('Consulta veterinaria 280', context);
+    expect(parsed.type).toBe('expense');
+    expect(parsed.category_id).toBe('cat_expense_veterinary');
+    expect(parsed.category_name).toBe('Pets');
+  });
+
+  it('categorizes investment contributions', () => {
+    const [parsed] = parseTransactionInput('Aporte investimento 1500', context);
+    expect(parsed.type).toBe('expense');
+    expect(parsed.category_id).toBe('cat_expense_investments');
+  });
+
   it('parses multiline blocks', () => {
     const parsed = parseTransactionInput('Outback 250\nSalario +40000\nInternet 160\nAluguel 2400', context);
     expect(parsed).toHaveLength(4);

@@ -13,6 +13,7 @@ const iconEmoji: Record<string, string> = {
   'shopping-cart': '🥑',
   car: '🚗',
   'heart-pulse': '💊',
+  'paw-print': '🐾',
   'graduation-cap': '🎓',
   repeat: '💳',
   wifi: '📡',
@@ -22,6 +23,7 @@ const iconEmoji: Record<string, string> = {
   plane: '✈️',
   users: '👨‍👩‍👧',
   landmark: '🏛️',
+  'chart-no-axes-combined': '📊',
   'credit-card': '💳',
   circle: '●',
 };

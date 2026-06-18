@@ -250,6 +250,7 @@ values
   ('cat_expense_market', null, 'Mercado', 'expense', 'shopping-cart', '#41B883', true),
   ('cat_expense_transport', null, 'Transporte', 'expense', 'car', '#3B82F6', true),
   ('cat_expense_health', null, 'Saude', 'expense', 'heart-pulse', '#EF4444', true),
+  ('cat_expense_veterinary', null, 'Pets', 'expense', 'paw-print', '#F97316', true),
   ('cat_expense_education', null, 'Educacao', 'expense', 'graduation-cap', '#7C3AED', true),
   ('cat_expense_subscriptions', null, 'Assinaturas', 'expense', 'repeat', '#06B6D4', true),
   ('cat_expense_internet', null, 'Internet/Telefone', 'expense', 'wifi', '#0EA5E9', true),
@@ -259,6 +260,7 @@ values
   ('cat_expense_travel', null, 'Viagens', 'expense', 'plane', '#14B8A6', true),
   ('cat_expense_family', null, 'Familia', 'expense', 'users', '#84CC16', true),
   ('cat_expense_taxes', null, 'Impostos', 'expense', 'landmark', '#78716C', true),
+  ('cat_expense_investments', null, 'Investimentos', 'expense', 'chart-no-axes-combined', '#22C55E', true),
   ('cat_expense_credit_card', null, 'Cartao de Credito', 'expense', 'credit-card', '#111827', true),
   ('cat_expense_other', null, 'Outros', 'expense', 'circle', '#9CA3AF', true)
 on conflict (id) do nothing;
