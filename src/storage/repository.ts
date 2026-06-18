@@ -387,6 +387,16 @@ export async function updateAccount(
   return updated;
 }
 
+export async function softDeleteAccount(account: Account) {
+  const deletedAt = now();
+  const deleted = { ...account, deleted_at: deletedAt, updated_at: deletedAt };
+  await updateLocalDb((db) => {
+    const index = db.accounts.findIndex((item) => item.id === account.id);
+    if (index >= 0) db.accounts[index] = deleted;
+  });
+  await enqueueMutation('accounts', account.id, 'delete', deleted);
+}
+
 export async function createReserveMovement(params: {
   householdId: string;
   userId: string | null;

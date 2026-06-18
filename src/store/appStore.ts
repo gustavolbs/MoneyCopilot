@@ -27,6 +27,7 @@ import {
   listRules,
   listTransactions,
   setAppState,
+  softDeleteAccount,
   softDeleteTransaction,
   updateTransactionCategory,
   updateTransaction,
@@ -92,6 +93,7 @@ type AppState = {
   resetCache: () => Promise<void>;
   addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
   editAccount: (account: Account, patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>) => Promise<void>;
+  deleteAccount: (account: Account) => Promise<void>;
   addReserveMovement: (params: { reserveAccountId: string; counterpartyAccountId?: string | null; kind: 'deposit' | 'withdrawal' | 'position'; amount: number; date: string; description?: string }) => Promise<void>;
   updateCreditCardSettings: (account: Account, dueDay: number, bestPurchaseDay: number) => Promise<void>;
   loadFamily: () => Promise<void>;
@@ -346,6 +348,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   editAccount: async (account, patch) => {
     await updateAccount(account, patch);
+    await get().refresh();
+    void get().sync();
+  },
+
+  deleteAccount: async (account) => {
+    await softDeleteAccount(account);
     await get().refresh();
     void get().sync();
   },

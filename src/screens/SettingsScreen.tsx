@@ -11,6 +11,7 @@ import {
   Plus,
   Repeat2,
   Tags,
+  Trash2,
   UserPlus,
   Users,
   WalletCards,
@@ -44,6 +45,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
     sync,
     addAccount,
     editAccount,
+    deleteAccount,
     familyMembers,
     familyInvites,
     loadFamily,
@@ -58,6 +60,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [familyError, setFamilyError] = useState<string | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ tone: 'success' | 'warning' | 'error'; message: string } | null>(null);
   const isOwner = familyMembers.some((member) => member.isYou && member.role === 'owner');
@@ -104,6 +107,17 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
           ? { tone: 'warning', message: 'Sem conexão. A sincronização ficou pendente.' }
           : { tone: 'error', message: 'Não foi possível sincronizar agora.' },
     );
+  };
+
+  const handleDeleteAccount = async (account: Account) => {
+    if (!window.confirm(`Excluir a conta "${account.name}"? As transações já registradas serão preservadas.`)) return;
+    setDeletingAccountId(account.id);
+    try {
+      await deleteAccount(account);
+      if (editingAccountId === account.id) setEditingAccountId(null);
+    } finally {
+      setDeletingAccountId(null);
+    }
   };
 
   const accountTypes: Array<{ label: string; value: Account['type'] }> = [
@@ -263,7 +277,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
                 <RowItem
                   title={account.name}
                   subtitle={account.type === 'reserve' ? 'Cofrinho/Reserva' : account.type === 'credit_card' ? `Cartão · vence dia ${account.credit_card_due_day ?? '-'} · melhor compra dia ${account.credit_card_best_purchase_day ?? '-'}` : account.type}
-                  right={<button type="button" className="account-edit-button" onClick={() => setEditingAccountId(editingAccountId === account.id ? null : account.id)} style={{ color: colors.blue, backgroundColor: colors.subtle }}><Pencil size={14} /> Editar</button>}
+                  right={<div className="settings-account-actions"><button type="button" className="account-edit-button" onClick={() => setEditingAccountId(editingAccountId === account.id ? null : account.id)} style={{ color: colors.blue, backgroundColor: colors.subtle }}><Pencil size={14} /> Editar</button><button type="button" className="account-delete-button" onClick={() => void handleDeleteAccount(account)} disabled={deletingAccountId === account.id} style={{ color: colors.red, backgroundColor: colors.subtle }} aria-label={`Excluir conta ${account.name}`}>{deletingAccountId === account.id ? <span className="small-spinner" /> : <Trash2 size={14} />} Excluir</button></div>}
                 />
                 {editingAccountId === account.id ? <AccountEditor account={account} accountTypes={accountTypes} onCancel={() => setEditingAccountId(null)} onSave={async (patch) => { await editAccount(account, patch); setEditingAccountId(null); }} /> : null}
               </div>

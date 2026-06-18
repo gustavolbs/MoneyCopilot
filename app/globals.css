@@ -1895,7 +1895,14 @@ button {
   border-bottom: 0;
 }
 
-.account-edit-button {
+.settings-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-edit-button,
+.account-delete-button {
   border: 0;
   border-radius: 8px;
   display: inline-flex;
@@ -1904,6 +1911,17 @@ button {
   padding: 7px 9px;
   font-size: 10px;
   font-weight: 750;
+}
+
+.account-delete-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.account-delete-button .small-spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
 }
 
 .account-editor {
