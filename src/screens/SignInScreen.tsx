@@ -57,10 +57,14 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: () => void }) {
     setFeedback(null);
     try {
       if (mode === 'signup') {
-        const result = await signUp(email.trim(), password, fullName.trim());
+        const submittedEmail = email.trim();
+        const result = await signUp(submittedEmail, password, fullName.trim());
         if (result.requiresEmailConfirmation) {
+          setFullName('');
+          setEmail('');
           setPassword('');
-          setFeedback({ tone: 'success', message: `Enviamos um link de confirmação para ${email.trim()}.` });
+          setShowPassword(false);
+          setFeedback({ tone: 'success', message: `Conta criada. Enviamos um link de confirmação para ${submittedEmail}.` });
           return;
         }
       } else {
@@ -130,7 +134,7 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: () => void }) {
               </div>
             </div>
 
-            {feedback ? <div className={`auth-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'}>{feedback.tone === 'success' ? <Check size={17} /> : null}<span>{feedback.message}</span></div> : null}
+            {feedback ? <div className={`auth-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'} aria-live={feedback.tone === 'success' ? 'polite' : 'assertive'}>{feedback.tone === 'success' ? <Check size={17} /> : null}<span>{feedback.message}</span></div> : null}
 
             <button className="button auth-submit" type="submit" disabled={loading}>
               {loading ? <span className="small-spinner" /> : mode === 'signup' ? 'Criar minha conta' : 'Entrar no MoneyCopilot'}

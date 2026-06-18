@@ -5,7 +5,7 @@ import { defaultCategories } from '@/domain/categories';
 import { generateInsights, Insight } from '@/domain/insights';
 import { monthKey } from '@/domain/normalize';
 import { Account, Budget, Category, CategorizationRule, Household, Recurrence, Transaction } from '@/domain/types';
-import { isSupabaseConfigured } from '@/lib/env';
+import { getAuthRedirectUrl, isSupabaseConfigured } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import { initLocalDb, resetLocalDb } from '@/storage/db';
 import {
@@ -183,7 +183,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   signUp: async (email, password, fullName) => {
     if (!isSupabaseConfigured()) throw new Error('Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.');
     set({ loading: true, error: null });
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
+    });
     if (error) {
       set({ loading: false, error: error.message });
       throw error;
