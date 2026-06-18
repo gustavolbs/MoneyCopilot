@@ -12,6 +12,7 @@ import { useThemeStore } from "@/store/themeStore";
 
 import { QuickEntry } from "./QuickEntry";
 import { categoryEmoji } from "./CategoryBadge";
+import { InsightTooltip } from "./InsightTooltip";
 import { SyncPill } from "./SyncPill";
 import { TransactionRow } from "./TransactionRow";
 
@@ -166,12 +167,16 @@ export function DesktopDashboard() {
 
         <DashboardCard className="desktop-insights-card" title="Insights" action="Análise automática">
           <div className="desktop-insight-list">
-            {insights.slice(0, 4).map((insight) => (
-              <div className={`desktop-insight ${insight.tone}`} key={insight.id}>
-                <span><Lightbulb size={16} /></span>
-                <div><strong>{insight.title}</strong><p>{insight.body}</p></div>
-              </div>
-            ))}
+            {insights.slice(0, 4).map((insight) => {
+              const tooltipId = `desktop-insight-tooltip-${insight.id}`;
+              return (
+                <div className={`desktop-insight ${insight.tone} insight-tooltip-anchor`} key={insight.id} tabIndex={0} aria-describedby={tooltipId}>
+                  <span><Lightbulb size={16} /></span>
+                  <div><strong>{insight.title}</strong><p>{insight.body}</p></div>
+                  <InsightTooltip id={tooltipId} insight={insight} />
+                </div>
+              );
+            })}
             {!insights.length ? (
               <div className="desktop-insight good">
                 <span><WalletCards size={16} /></span>

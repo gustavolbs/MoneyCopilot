@@ -454,7 +454,7 @@ button {
   gap: 5px;
 }
 
-.insights-bars i {
+.insights-bar {
   width: min(24px, 38%);
   min-height: 0;
   border-radius: 6px 6px 2px 2px;
@@ -556,6 +556,94 @@ button {
 .insights-feed-grid .card {
   position: relative;
   min-height: 132px;
+}
+
+.insight-tooltip-anchor {
+  position: relative;
+  min-width: 0;
+  cursor: help;
+  outline: none;
+}
+
+.insight-tooltip-anchor:focus-visible {
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px var(--mc-blue);
+}
+
+.insights-feed-grid .insight-tooltip-anchor > .card {
+  height: 100%;
+}
+
+.insight-tooltip {
+  width: min(280px, calc(100vw - 48px));
+  position: absolute;
+  z-index: 30;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  border: 1px solid var(--mc-line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: var(--mc-ink);
+  color: var(--mc-bg);
+  box-shadow: 0 14px 34px rgba(0, 8, 20, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 5px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.insight-tooltip::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  border: 6px solid transparent;
+  border-top-color: var(--mc-ink);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.insight-tooltip strong,
+.insight-tooltip span,
+.insight-tooltip small {
+  display: block;
+}
+
+.insight-tooltip strong {
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.insight-tooltip span {
+  overflow: visible;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.insight-tooltip small {
+  overflow: visible;
+  margin-top: 6px;
+  color: inherit;
+  opacity: 0.72;
+  font-size: 9px;
+  text-overflow: clip;
+  text-transform: none;
+  white-space: normal;
+}
+
+.insights-feed-grid .insight-tooltip small {
+  overflow: visible;
+  text-transform: none;
+  white-space: normal;
+}
+
+.insight-tooltip-anchor:hover > .insight-tooltip,
+.insight-tooltip-anchor:focus > .insight-tooltip,
+.insight-tooltip-anchor:focus-within > .insight-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .insight-visual-icon {
@@ -898,6 +986,8 @@ button {
 .category-badge {
   --badge-color: var(--mc-blue);
   display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
   align-items: center;
   justify-content: center;
   gap: 5px;
@@ -929,11 +1019,13 @@ button {
 }
 
 .category-badge-emoji {
+  flex: 0 0 auto;
   font-size: 1.12em;
   line-height: 1;
 }
 
 .category-badge-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -970,11 +1062,18 @@ button {
 .transaction-table th:nth-child(2),
 .transaction-table td:nth-child(2) {
   width: 22%;
+  padding-right: 12px;
 }
 
 .transaction-table th:nth-child(3),
 .transaction-table td:nth-child(3) {
   width: 24%;
+  padding-right: 12px;
+}
+
+.transaction-table td:nth-child(2) .category-badge,
+.transaction-table td:nth-child(3) .payment-badge {
+  max-width: 100%;
 }
 
 .transaction-table th:nth-child(4),
@@ -1818,7 +1917,12 @@ button {
   color: color-mix(in srgb, var(--mc-blue) 75%, var(--mc-ink));
 }
 
+.payment-badge > span:first-child {
+  flex: 0 0 auto;
+}
+
 .payment-badge-label {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -2803,7 +2907,7 @@ button {
   }
 
   .desktop-spending-card { grid-column: span 8; order: 1; }
-  .desktop-insights-card { grid-column: span 4; order: 2; }
+  .desktop-insights-card { grid-column: span 4; order: 2; overflow: visible; }
   .desktop-transactions-card { grid-column: span 8; order: 3; }
   .desktop-categories-card { grid-column: span 4; order: 4; }
   .desktop-networth-card { grid-column: span 4; order: 5; }

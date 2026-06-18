@@ -67,7 +67,7 @@ export function TransactionRow({
       </td>
       <td className="transaction-payment-cell">
         {transaction.type === "expense" ? (
-          <span className={`payment-badge ${transaction.payment_method === "credit_card" ? "credit-card" : "cash"}`}>
+          <span className={`payment-badge ${transaction.payment_method === "credit_card" ? "credit-card" : "cash"}`} title={paymentLabel}>
             <span aria-hidden="true">{transaction.payment_method === "credit_card" ? "💳" : "💵"}</span>
             <span className="payment-badge-label">{paymentLabel}</span>
           </span>

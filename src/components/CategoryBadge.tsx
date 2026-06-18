@@ -63,14 +63,14 @@ export function CategoryBadge({
 
   if (onClick) {
     return (
-      <button type="button" className={className} style={style} onClick={onClick}>
+      <button type="button" className={className} style={style} onClick={onClick} title={name}>
         {content}
       </button>
     );
   }
 
   return (
-    <span className={className} style={style}>
+    <span className={className} style={style} title={name}>
       {content}
     </span>
   );

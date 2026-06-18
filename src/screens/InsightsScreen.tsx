@@ -4,6 +4,7 @@ import { subMonths } from "date-fns";
 import { ArrowDownRight, ArrowUpRight, Lightbulb, PiggyBank, ReceiptText, TrendingUp, WalletCards } from "lucide-react";
 
 import { PeriodNotice } from "@/components/PeriodNotice";
+import { DataTooltip, InsightTooltip } from "@/components/InsightTooltip";
 import { Card, Label, Screen, Title } from "@/components/ui";
 import { metricsForMonth } from "@/domain/finance";
 import { formatCurrency, formatMonthShort, formatMonthYear, monthKey } from "@/domain/normalize";
@@ -61,8 +62,8 @@ export function InsightsScreen() {
           {monthlySeries.map((item) => (
             <div className="insights-month-column" key={item.label}>
               <div className="insights-bars">
-                <i className="income" style={{ height: `${Math.max((item.metrics.income / maxMonthlyValue) * 100, item.metrics.income > 0 ? 4 : 0)}%` }} title={`Receitas: ${formatCurrency(item.metrics.income)}`} />
-                <i className="expense" style={{ height: `${Math.max((item.metrics.expense / maxMonthlyValue) * 100, item.metrics.expense > 0 ? 4 : 0)}%` }} title={`Despesas: ${formatCurrency(item.metrics.expense)}`} />
+                <ChartBar type="income" month={item.label} value={item.metrics.income} maxValue={maxMonthlyValue} />
+                <ChartBar type="expense" month={item.label} value={item.metrics.expense} maxValue={maxMonthlyValue} />
               </div>
               <span>{item.label}</span>
             </div>
@@ -80,9 +81,10 @@ export function InsightsScreen() {
               </div>
               <div className="insights-category-ranking">
                 {metrics.byCategory.slice(0, 4).map((item) => (
-                  <div key={item.category.id}>
+                  <div className="insight-tooltip-anchor" key={item.category.id} tabIndex={0} aria-describedby={`category-tooltip-${item.category.id}`}>
                     <span><i style={{ backgroundColor: item.category.color }} />{item.category.name}</span>
                     <strong>{Math.round(item.percent * 100)}%</strong>
+                    <DataTooltip id={`category-tooltip-${item.category.id}`} title={item.category.name} body={formatCurrency(item.amount)} detail={`${Math.round(item.percent * 100)}% das despesas do mês`} />
                   </div>
                 ))}
               </div>
@@ -93,9 +95,9 @@ export function InsightsScreen() {
         <Card style={{ gap: 14 }}>
           <div className="insights-section-head"><div><Label>Destaques</Label><strong>Resumo rápido</strong></div></div>
           <div className="insights-highlights">
-            <Highlight label="Sobra prevista" value={formatCurrency(metrics.projectedClose)} color={metrics.projectedClose >= 0 ? colors.green : colors.red} />
-            <Highlight label="Maior despesa" value={largestExpense ? formatCurrency(largestExpense.amount) : "-"} detail={largestExpense?.description} color={colors.red} />
-            <Highlight label="Transferências" value={String(transferCount)} detail="movimentos internos" color={colors.blue} />
+            <Highlight id="projected-close" label="Sobra prevista" value={formatCurrency(metrics.projectedClose)} tooltip="Receitas menos despesas e compromissos recorrentes previstos para o mês." color={metrics.projectedClose >= 0 ? colors.green : colors.red} />
+            <Highlight id="largest-expense" label="Maior despesa" value={largestExpense ? formatCurrency(largestExpense.amount) : "-"} detail={largestExpense?.description} tooltip={largestExpense ? `${largestExpense.description}: ${formatCurrency(largestExpense.amount)}` : "Nenhuma despesa registrada nesta competência."} color={colors.red} />
+            <Highlight id="transfers" label="Transferências" value={String(transferCount)} detail="movimentos internos" tooltip={`${transferCount} transferência(s) interna(s) registrada(s) nesta competência.`} color={colors.blue} />
           </div>
         </Card>
       </div>
@@ -104,14 +106,20 @@ export function InsightsScreen() {
         <div><Label>Tendências</Label><strong>Análise automática</strong></div>
       </div>
       <div className="insights-feed-grid">
-        {insights.map((insight) => (
-          <Card key={insight.id} style={{ gap: 8, borderColor: insight.tone === "warning" ? `${colors.red}66` : colors.line }}>
-            <div className={`insight-visual-icon ${insight.tone}`}><Lightbulb size={16} /></div>
-            {insight.percentage !== undefined ? <PercentageValue value={insight.percentage} inverse={insight.id.startsWith("expense") || insight.id.startsWith("growth") || insight.id.startsWith("budget")} /> : null}
-            <strong className="insight-visual-title">{insight.title}</strong>
-            <small style={{ color: colors.muted }}>{insight.comparison ?? insight.body}</small>
-          </Card>
-        ))}
+        {insights.map((insight) => {
+          const tooltipId = `insight-tooltip-${insight.id}`;
+          return (
+            <div className="insight-tooltip-anchor" key={insight.id} tabIndex={0} aria-describedby={tooltipId}>
+              <Card style={{ gap: 8, borderColor: insight.tone === "warning" ? `${colors.red}66` : colors.line }}>
+                <div className={`insight-visual-icon ${insight.tone}`}><Lightbulb size={16} /></div>
+                {insight.percentage !== undefined ? <PercentageValue value={insight.percentage} inverse={insight.id.startsWith("expense") || insight.id.startsWith("growth") || insight.id.startsWith("budget")} /> : null}
+                <strong className="insight-visual-title">{insight.title}</strong>
+                <small style={{ color: colors.muted }}>{insight.comparison ?? insight.body}</small>
+              </Card>
+              <InsightTooltip id={tooltipId} insight={insight} />
+            </div>
+          );
+        })}
       </div>
       {!insights.length ? <Card><p className="insights-empty" style={{ color: colors.muted }}>Registre mais transações para visualizar tendências.</p></Card> : null}
     </Screen>
@@ -141,6 +149,17 @@ function PercentageValue({ value, inverse = false }: { value: number | null; inv
   return <span className="percentage-value" style={{ color: favorable ? colors.green : colors.red, backgroundColor: favorable ? `${colors.green}18` : `${colors.red}18` }}><Icon size={13} />{value > 0 ? "+" : ""}{Math.round(value)}%</span>;
 }
 
-function Highlight({ label, value, detail, color }: { label: string; value: string; detail?: string; color: string }) {
-  return <div className="insight-highlight"><i style={{ backgroundColor: color }} /><div><span>{label}</span>{detail ? <small>{detail}</small> : null}</div><strong style={{ color }}>{value}</strong></div>;
+function ChartBar({ type, month, value, maxValue }: { type: "income" | "expense"; month: string; value: number; maxValue: number }) {
+  const label = type === "income" ? "Receitas" : "Despesas";
+  const tooltipId = `evolution-tooltip-${type}-${month}`;
+  return (
+    <div className={`insights-bar ${type} insight-tooltip-anchor`} style={{ height: `${Math.max((value / maxValue) * 100, value > 0 ? 4 : 0)}%` }} tabIndex={0} aria-describedby={tooltipId}>
+      <DataTooltip id={tooltipId} title={`${label} em ${month}`} body={formatCurrency(value)} detail="Competência mensal" />
+    </div>
+  );
+}
+
+function Highlight({ id, label, value, detail, tooltip, color }: { id: string; label: string; value: string; detail?: string; tooltip: string; color: string }) {
+  const tooltipId = `highlight-tooltip-${id}`;
+  return <div className="insight-highlight insight-tooltip-anchor" tabIndex={0} aria-describedby={tooltipId}><i style={{ backgroundColor: color }} /><div><span>{label}</span>{detail ? <small>{detail}</small> : null}</div><strong style={{ color }}>{value}</strong><DataTooltip id={tooltipId} title={label} body={tooltip} detail={value} /></div>;
 }
