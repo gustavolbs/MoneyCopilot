@@ -1,12 +1,12 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Target } from "lucide-react";
-import { useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Pencil, Target, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { CategoryBadge, categoryEmoji } from "@/components/CategoryBadge";
 import { PeriodNotice } from "@/components/PeriodNotice";
 import { Button, Card, Field, Label, Screen, Title } from "@/components/ui";
-import { budgetProgress } from "@/domain/finance";
+import { budgetProgress, transactionBelongsToMonth } from "@/domain/finance";
 import { formatCurrency, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
@@ -38,9 +38,30 @@ export function BudgetsScreen() {
   const unbudgetedCategories = expenseCategories.filter((category) => !monthBudgets.some((budget) => budget.category_id === category.id));
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState(expenseCategories[0]?.id ?? "");
+  const [inspectedBudgetId, setInspectedBudgetId] = useState<string | null>(null);
   const selectedCategory = categories.find((category) => category.id === categoryId);
   const existingBudget = monthBudgets.find((budget) => budget.category_id === categoryId);
+  const inspectedBudget = budgetItems.find((item) => item.budget.id === inspectedBudgetId) ?? null;
+  const inspectedTransactions = useMemo(() => inspectedBudget
+    ? transactions
+        .filter((transaction) => !transaction.deleted_at && transaction.type === "expense" && transaction.category_id === inspectedBudget.budget.category_id && transactionBelongsToMonth(transaction, currentMonth, accounts))
+        .sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
+    : [], [accounts, currentMonth, inspectedBudget, transactions]);
   const ringColor = summary.percent >= 1 ? colors.red : summary.percent >= 0.8 ? colors.gold : colors.green;
+
+  useEffect(() => {
+    if (!inspectedBudgetId) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setInspectedBudgetId(null);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [inspectedBudgetId]);
 
   const selectCategory = (id: string, existingAmount?: number) => {
     setCategoryId(id);
@@ -100,7 +121,7 @@ export function BudgetsScreen() {
           const statusColor = progress.status === "over" ? colors.red : progress.status === "warning" ? colors.gold : category?.color ?? colors.green;
           const remaining = budget.amount - progress.spent;
           return (
-            <button type="button" className="budget-visual-card" key={budget.id} onClick={() => selectCategory(budget.category_id, budget.amount)} style={{ backgroundColor: colors.surface, borderColor: colors.line }}>
+            <button type="button" className={`budget-visual-card${inspectedBudgetId === budget.id ? " selected" : ""}`} key={budget.id} onClick={() => setInspectedBudgetId(inspectedBudgetId === budget.id ? null : budget.id)} style={{ backgroundColor: colors.surface, borderColor: inspectedBudgetId === budget.id ? colors.blue : colors.line }}>
               <div className="budget-card-top">
                 <span className="budget-category-icon" style={{ backgroundColor: `${category?.color ?? colors.blue}20`, color: category?.color ?? colors.blue }}>{categoryEmoji(category)}</span>
                 <div><strong style={{ color: colors.ink }}>{category?.name ?? "Categoria"}</strong><small style={{ color: colors.muted }}>{formatCurrency(progress.spent)} de {formatCurrency(budget.amount)}</small></div>
@@ -130,6 +151,62 @@ export function BudgetsScreen() {
         </div>
         {!unbudgetedCategories.length && !existingBudget ? <p className="budget-empty" style={{ color: colors.muted }}>Todas as categorias já possuem limite neste mês.</p> : null}
       </Card>
+
+      {inspectedBudget ? (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="budget-details-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setInspectedBudgetId(null);
+          }}
+        >
+          <div className="modal-panel budget-details-modal" style={{ backgroundColor: colors.bg }} onMouseDown={(event) => event.stopPropagation()}>
+            <div className="budget-details-header" style={{ borderColor: colors.line }}>
+              <span className="budget-category-icon" style={{ backgroundColor: `${inspectedBudget.category?.color ?? colors.blue}20`, color: inspectedBudget.category?.color ?? colors.blue }}>{categoryEmoji(inspectedBudget.category)}</span>
+              <div>
+                <Label>Transações do orçamento</Label>
+                <strong id="budget-details-title">{inspectedBudget.category?.name ?? "Categoria"}</strong>
+                <small style={{ color: colors.muted }}>{inspectedTransactions.length} transação(ões) · {formatCurrency(inspectedBudget.progress.spent)} utilizados</small>
+              </div>
+              <button type="button" className="budget-detail-close" onClick={() => setInspectedBudgetId(null)} style={{ color: colors.muted, backgroundColor: colors.subtle }} aria-label="Fechar detalhes"><X size={17} /></button>
+            </div>
+
+            <div className="budget-details-modal-content">
+              {inspectedTransactions.length ? (
+                <div className="budget-transaction-list">
+                  {inspectedTransactions.map((transaction) => {
+                    const card = accounts.find((account) => account.id === transaction.account_id && account.type === "credit_card");
+                    const isCard = transaction.payment_method === "credit_card";
+                    return (
+                      <div className="budget-transaction-item" key={transaction.id} style={{ borderColor: colors.line }}>
+                        <div><strong>{transaction.description}</strong><small style={{ color: colors.muted }}>{transaction.transaction_date.split("-").reverse().join("/")}</small></div>
+                        <span className={`payment-badge ${isCard ? "credit-card" : "cash"}`}><span aria-hidden="true">{isCard ? "💳" : "💵"}</span><span className="payment-badge-label">{isCard ? card?.name ?? "Cartão" : "À vista"}</span></span>
+                        <b style={{ color: colors.red }}>-{formatCurrency(transaction.amount)}</b>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : <p className="budget-empty" style={{ color: colors.muted }}>Nenhuma transação está consumindo este orçamento.</p>}
+            </div>
+
+            <div className="budget-details-modal-footer" style={{ borderColor: colors.line }}>
+              <button
+                type="button"
+                className="budget-edit-limit"
+                onClick={() => {
+                  selectCategory(inspectedBudget.budget.category_id, inspectedBudget.budget.amount);
+                  setInspectedBudgetId(null);
+                }}
+                style={{ color: colors.blue, backgroundColor: colors.subtle }}
+              >
+                <Pencil size={14} />Editar limite de {formatCurrency(inspectedBudget.budget.amount)}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </Screen>
   );
 }
