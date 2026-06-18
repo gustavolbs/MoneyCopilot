@@ -3,6 +3,7 @@
 import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowDownRight, ArrowUpRight, CalendarDays, CreditCard, Lightbulb, Moon, Sun, WalletCards } from "lucide-react";
+import { useState } from "react";
 
 import { metricsForMonth, transactionMonth } from "@/domain/finance";
 import { formatCurrency, monthKey } from "@/domain/normalize";
@@ -217,6 +218,7 @@ function DashboardCard({ title, action, className, children }: { title: string; 
 }
 
 function CashFlowChart({ series }: { series: Array<{ label: string; expense: number; income: number }> }) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const width = 620;
   const height = 210;
   const padding = 18;
@@ -224,13 +226,18 @@ function CashFlowChart({ series }: { series: Array<{ label: string; expense: num
   const pointsFor = (key: "expense" | "income") => series.map((item, index) => {
     const x = padding + (index * (width - padding * 2)) / Math.max(series.length - 1, 1);
     const y = height - padding - (item[key] / max) * (height - padding * 2);
-    return `${x},${y}`;
-  }).join(" ");
-  const expensePoints = pointsFor("expense");
-  const incomePoints = pointsFor("income");
+    return { x, y };
+  });
+  const expenseCoordinates = pointsFor("expense");
+  const incomeCoordinates = pointsFor("income");
+  const expensePoints = expenseCoordinates.map((point) => `${point.x},${point.y}`).join(" ");
+  const incomePoints = incomeCoordinates.map((point) => `${point.x},${point.y}`).join(" ");
+  const active = activeIndex === null ? null : series[activeIndex];
+  const activePoint = activeIndex === null ? null : expenseCoordinates[activeIndex];
+  const activeTop = activeIndex === null ? null : Math.min(expenseCoordinates[activeIndex].y, incomeCoordinates[activeIndex].y);
 
   return (
-    <div className="desktop-cashflow-chart">
+    <div className="desktop-cashflow-chart" onMouseLeave={() => setActiveIndex(null)}>
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Grafico de receitas e despesas dos ultimos seis meses">
         <defs>
           <linearGradient id="desktopExpenseFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--mc-blue)" stopOpacity=".3" /><stop offset="1" stopColor="var(--mc-blue)" stopOpacity="0" /></linearGradient>
@@ -239,7 +246,38 @@ function CashFlowChart({ series }: { series: Array<{ label: string; expense: num
         <polygon points={`${padding},${height - padding} ${expensePoints} ${width - padding},${height - padding}`} fill="url(#desktopExpenseFill)" />
         <polyline points={expensePoints} className="chart-line expense" />
         <polyline points={incomePoints} className="chart-line income" />
+        {series.map((item, index) => {
+          const expensePoint = expenseCoordinates[index];
+          const incomePoint = incomeCoordinates[index];
+          const segmentWidth = (width - padding * 2) / Math.max(series.length - 1, 1);
+          return (
+            <g
+              key={item.label}
+              className={`chart-hit-area${activeIndex === index ? " active" : ""}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${item.label}: receitas ${formatCurrency(item.income)}, despesas ${formatCurrency(item.expense)}`}
+              onMouseEnter={() => setActiveIndex(index)}
+              onFocus={() => setActiveIndex(index)}
+              onBlur={() => setActiveIndex(null)}
+              onClick={() => setActiveIndex(index)}
+            >
+              <rect x={Math.max(expensePoint.x - segmentWidth / 2, 0)} y="0" width={segmentWidth} height={height} fill="transparent" />
+              <line x1={expensePoint.x} x2={expensePoint.x} y1={padding} y2={height - padding} className="chart-hover-line" />
+              <circle cx={expensePoint.x} cy={expensePoint.y} r="5" className="chart-point expense" />
+              <circle cx={incomePoint.x} cy={incomePoint.y} r="4" className="chart-point income" />
+            </g>
+          );
+        })}
       </svg>
+      {active && activePoint && activeTop !== null ? (
+        <div className={`desktop-chart-tooltip${activeIndex === 0 ? " start" : activeIndex === series.length - 1 ? " end" : ""}${activeTop < height * 0.48 ? " below" : ""}`} style={{ left: `${(activePoint.x / width) * 100}%`, top: `${(activeTop / height) * 100}%` }}>
+          <strong>{active.label}</strong>
+          <span><i className="income" />Receitas <b>{formatCurrency(active.income)}</b></span>
+          <span><i className="expense" />Despesas <b>{formatCurrency(active.expense)}</b></span>
+          <small>Saldo {formatCurrency(active.income - active.expense)}</small>
+        </div>
+      ) : null}
       <div className="desktop-chart-labels">{series.map((item) => <span key={item.label}>{item.label}</span>)}</div>
       <div className="desktop-chart-legend"><span className="expense">Despesas</span><span className="income">Receitas</span></div>
     </div>

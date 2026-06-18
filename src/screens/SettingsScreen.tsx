@@ -1,6 +1,6 @@
 'use client';
 
-import { Pencil } from 'lucide-react';
+import { ChevronDown, Cloud, Database, Pencil, Plus, Repeat2, Tags, Users, WalletCards, WandSparkles, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { SyncPill } from '@/components/SyncPill';
@@ -20,6 +20,8 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [familyError, setFamilyError] = useState<string | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [showAccountForm, setShowAccountForm] = useState(false);
+  const [openSection, setOpenSection] = useState<'family' | 'accounts' | 'sync' | null>(null);
   const isOwner = familyMembers.some((member) => member.isYou && member.role === 'owner');
 
   useEffect(() => {
@@ -52,8 +54,16 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
         <Title>Ajustes</Title>
       </div>
 
-      <Card style={{ gap: 10 }}>
-        <Label>Familia</Label>
+      <Card style={{ gap: 8, padding: 12 }}>
+        <SettingsSectionHeader
+          icon={<Users size={18} />}
+          title="Familia"
+          summary={`${familyMembers.length} membro(s) · ${familyInvites.length} convite(s)`}
+          color={colors.blue}
+          open={openSection === 'family'}
+          onToggle={() => setOpenSection(openSection === 'family' ? null : 'family')}
+        />
+        {openSection === 'family' ? <div className="settings-collapsible-content">
         <RowItem title={household?.name ?? 'Familia'} subtitle="Dados compartilhados no household" />
 
         {familyMembers.map((member) => (
@@ -96,10 +106,25 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
         ) : (
           <p className="sync-log" style={{ color: colors.muted }}>Apenas o responsavel pode convidar novos membros.</p>
         )}
+        </div> : null}
       </Card>
 
-      <Card style={{ gap: 8 }}>
-        <Label>Contas</Label>
+      <Card style={{ gap: 8, padding: 12 }}>
+        <SettingsSectionHeader
+          icon={<WalletCards size={18} />}
+          title="Patrimonio e pagamentos"
+          summary={`${accounts.length} conta(s) · ${accounts.filter((account) => account.type === 'credit_card').length} cartao(oes)`}
+          color={colors.green}
+          open={openSection === 'accounts'}
+          onToggle={() => setOpenSection(openSection === 'accounts' ? null : 'accounts')}
+        />
+        {openSection === 'accounts' ? <div className="settings-collapsible-content">
+        <div className="settings-inline-action-row">
+          <span style={{ color: colors.muted }}>Gerencie saldos, tipos e vencimentos.</span>
+          <button type="button" className="settings-add-button" onClick={() => setShowAccountForm((visible) => !visible)} style={{ color: colors.blue, backgroundColor: colors.subtle }}>
+            {showAccountForm ? <X size={15} /> : <Plus size={15} />}{showAccountForm ? 'Fechar' : 'Nova conta'}
+          </button>
+        </div>
         {accounts.map((account) => (
           <div key={account.id} className="settings-account-item" style={{ borderColor: colors.line }}>
             <RowItem
@@ -131,64 +156,81 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
             ) : null}
           </div>
         ))}
-        <div className="separator" style={{ backgroundColor: colors.line }} />
-        <Field value={accountName} onChangeText={setAccountName} placeholder="Ex: Cofrinho Casa" />
-        <div className="chip-grid">
-          {accountTypes.map((item) => (
-            <button
-              type="button"
-              key={item.value}
-              onClick={() => setAccountType(item.value)}
-              className="chip"
-              style={{ backgroundColor: accountType === item.value ? colors.ink : colors.subtle, color: accountType === item.value ? colors.bg : colors.ink, borderColor: 'transparent' }}
+        {showAccountForm ? (
+          <div className="settings-create-account" style={{ backgroundColor: colors.subtle }}>
+            <div className="settings-create-title"><Plus size={16} color={colors.blue} /><strong>Adicionar conta</strong></div>
+            <Field value={accountName} onChangeText={setAccountName} placeholder="Ex: Cofrinho Casa" />
+            <div className="chip-grid">
+              {accountTypes.map((item) => (
+                <button
+                  type="button"
+                  key={item.value}
+                  onClick={() => setAccountType(item.value)}
+                  className="chip"
+                  style={{ backgroundColor: accountType === item.value ? colors.ink : colors.surface, color: accountType === item.value ? colors.bg : colors.ink, borderColor: colors.line }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            {accountType === 'credit_card' ? (
+              <div className="card-date-grid">
+                <div><Label>Dia de vencimento</Label><Field value={cardDueDay} onChangeText={setCardDueDay} placeholder="10" keyboardType="numeric" /></div>
+                <div><Label>Melhor dia de compra</Label><Field value={cardBestPurchaseDay} onChangeText={setCardBestPurchaseDay} placeholder="3" keyboardType="numeric" /></div>
+              </div>
+            ) : null}
+            <Button
+              onPress={() => {
+                const dueDay = clampDay(cardDueDay, 10);
+                const bestPurchaseDay = clampDay(cardBestPurchaseDay, 3);
+                void addAccount(accountName, accountType, accountType === 'credit_card' ? { dueDay, bestPurchaseDay } : undefined).then(() => {
+                  setAccountName('');
+                  setShowAccountForm(false);
+                });
+              }}
             >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        {accountType === 'credit_card' ? (
-          <div className="card-date-grid">
-            <div>
-              <Label>Dia de vencimento</Label>
-              <Field value={cardDueDay} onChangeText={setCardDueDay} placeholder="10" keyboardType="numeric" />
-            </div>
-            <div>
-              <Label>Melhor dia de compra</Label>
-              <Field value={cardBestPurchaseDay} onChangeText={setCardBestPurchaseDay} placeholder="3" keyboardType="numeric" />
-            </div>
+              Adicionar conta
+            </Button>
           </div>
         ) : null}
-        <Button
-          onPress={() => {
-            const dueDay = clampDay(cardDueDay, 10);
-            const bestPurchaseDay = clampDay(cardBestPurchaseDay, 3);
-            void addAccount(accountName, accountType, accountType === 'credit_card' ? { dueDay, bestPurchaseDay } : undefined);
-            setAccountName('');
-          }}
-          variant="ghost"
-        >
-          Adicionar conta
-        </Button>
+        </div> : null}
       </Card>
 
-      <Card style={{ gap: 8 }}>
-        <Label>Automacoes</Label>
-        <RowItem title="Categorias" subtitle={`${categories.length} categorias cadastradas`} />
-        <RowItem title="Regras automaticas" subtitle={`${rules.length} regras aprendidas por correcao`} />
-        <RowItem title="Recorrencias" subtitle={recurrences.length ? `${recurrences.length} recorrencias ativas` : 'Nenhuma recorrencia cadastrada'} />
+      <Card style={{ gap: 8, padding: 12 }}>
+        <div className="settings-section-heading">
+          <span style={{ color: colors.gold, backgroundColor: `${colors.gold}18` }}><WandSparkles size={18} /></span>
+          <div><strong>Automacoes</strong><small style={{ color: colors.muted }}>{rules.length} regras · {recurrences.length} recorrencias · {categories.length} categorias</small></div>
+        </div>
+        <div className="settings-automation-grid">
+          <AutomationItem icon={<Tags size={17} />} title="Categorias" value={categories.length} detail="opcoes disponiveis" color={colors.blue} />
+          <AutomationItem icon={<WandSparkles size={17} />} title="Regras aprendidas" value={rules.length} detail="correcoes memorizadas" color={colors.gold} />
+          <AutomationItem icon={<Repeat2 size={17} />} title="Recorrencias" value={recurrences.length} detail={recurrences.length ? 'previsoes ativas' : 'nenhuma ativa'} color={colors.green} />
+        </div>
       </Card>
 
-      <Card style={{ gap: 10 }}>
-        <Label>Sincronizacao</Label>
-        <RowItem title="Supabase" subtitle={isSupabaseConfigured() ? 'Configurado' : 'Nao configurado'} />
+      <Card style={{ gap: 8, padding: 12 }}>
+        <SettingsSectionHeader
+          icon={<Cloud size={18} />}
+          title="Dados e sincronizacao"
+          summary={isSupabaseConfigured() ? `${syncLogs.length} evento(s) · nuvem configurada` : 'Dados somente neste dispositivo'}
+          color={isSupabaseConfigured() ? colors.green : colors.gold}
+          open={openSection === 'sync'}
+          onToggle={() => setOpenSection(openSection === 'sync' ? null : 'sync')}
+        />
+        {openSection === 'sync' ? <div className="settings-collapsible-content">
         <Button onPress={() => void sync()} variant="ghost">Sincronizar agora</Button>
         {syncLogs.slice(0, 5).map((log) => (
           <p key={`${log.created_at}-${log.message}`} className="sync-log" style={{ color: colors.muted }}>{log.created_at.slice(11, 19)} · {log.message}</p>
         ))}
+        </div> : null}
       </Card>
 
-      <Card style={{ gap: 10 }}>
-        <Label>Manutencao</Label>
+      <Card style={{ gap: 8, padding: 12 }}>
+        <div className="settings-section-heading">
+          <span style={{ color: colors.red, backgroundColor: `${colors.red}18` }}><Database size={18} /></span>
+          <div><Label>Dados locais e acesso</Label><strong>Manutencao</strong></div>
+        </div>
+        <div className="settings-maintenance-actions">
         <Button
           onPress={() => {
             if (window.confirm('Apagar cache local?')) void resetCache();
@@ -205,8 +247,29 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
         >
           Sair
         </Button>
+        </div>
       </Card>
     </Screen>
+  );
+}
+
+function SettingsSectionHeader({ icon, title, summary, color, open, onToggle }: { icon: React.ReactNode; title: string; summary: string; color: string; open: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" className="settings-compact-header" onClick={onToggle} aria-expanded={open}>
+      <span style={{ color, backgroundColor: `${color}18` }}>{icon}</span>
+      <div><strong>{title}</strong><small>{summary}</small></div>
+      <ChevronDown size={17} style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+    </button>
+  );
+}
+
+function AutomationItem({ icon, title, value, detail, color }: { icon: React.ReactNode; title: string; value: number; detail: string; color: string }) {
+  return (
+    <div className="settings-automation-item">
+      <span style={{ color, backgroundColor: `${color}18` }}>{icon}</span>
+      <div><strong>{title}</strong><small>{detail}</small></div>
+      <b style={{ color }}>{value}</b>
+    </div>
   );
 }
 

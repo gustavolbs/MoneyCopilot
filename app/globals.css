@@ -1528,6 +1528,236 @@ button {
   font-size: 12px;
 }
 
+.settings-overview-grid,
+.settings-automation-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-overview-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.settings-stat {
+  min-width: 0;
+  border: 1px solid;
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 9px;
+  background: var(--mc-surface);
+  padding: 12px;
+}
+
+.settings-stat > span,
+.settings-section-heading > span:first-child,
+.settings-automation-item > span {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+}
+
+.settings-stat > span {
+  grid-row: 1 / 3;
+}
+
+.settings-stat strong {
+  font-size: 17px;
+}
+
+.settings-stat small {
+  overflow: hidden;
+  color: var(--mc-muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-section-heading,
+.settings-add-button,
+.settings-create-title,
+.settings-automation-item {
+  display: flex;
+  align-items: center;
+}
+
+.settings-section-heading {
+  min-height: 40px;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+
+.settings-section-heading > div {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-section-heading strong {
+  font-size: 15px;
+}
+
+.settings-add-button {
+  flex: 0 0 auto;
+  gap: 5px;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.settings-create-account {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  border-radius: 10px;
+  margin-top: 8px;
+  padding: 14px;
+}
+
+.settings-create-title {
+  gap: 7px;
+  font-size: 13px;
+}
+
+.settings-create-account .field {
+  background: var(--mc-surface) !important;
+}
+
+.settings-automation-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-automation-item {
+  min-width: 0;
+  gap: 9px;
+  border: 1px solid var(--mc-line);
+  border-radius: 9px;
+  padding: 11px;
+}
+
+.settings-automation-item > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-automation-item strong,
+.settings-automation-item small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-automation-item strong {
+  font-size: 10px;
+}
+
+.settings-automation-item small {
+  margin-top: 3px;
+  color: var(--mc-muted);
+  font-size: 8px;
+}
+
+.settings-automation-item b {
+  font-size: 15px;
+}
+
+.settings-status-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.settings-compact-header {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  color: var(--mc-ink);
+  text-align: left;
+}
+
+.settings-compact-header > span {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+}
+
+.settings-compact-header > div {
+  min-width: 0;
+}
+
+.settings-compact-header strong,
+.settings-compact-header small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-compact-header strong {
+  font-size: 13px;
+}
+
+.settings-compact-header small,
+.settings-section-heading small {
+  margin-top: 3px;
+  color: var(--mc-muted);
+  font-size: 9px;
+}
+
+.settings-compact-header > svg {
+  color: var(--mc-muted);
+  transition: transform 160ms ease;
+}
+
+.settings-collapsible-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--mc-line);
+  margin-top: 6px;
+  padding-top: 10px;
+}
+
+.settings-inline-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 4px;
+  font-size: 9px;
+}
+
+.settings-maintenance-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings-maintenance-actions .button {
+  min-height: 42px;
+  font-size: 12px;
+}
+
 :root[data-theme="dark"] .modal-panel {
   box-shadow: 0 -18px 70px rgba(0, 0, 0, 0.55);
 }
@@ -1834,18 +2064,20 @@ button {
     white-space: nowrap;
   }
 
-  .desktop-spending-card,
-  .desktop-transactions-card,
-  .desktop-quick-card,
-  .desktop-insights-card {
-    grid-column: span 7;
-  }
+  .desktop-spending-card { grid-column: span 8; order: 1; }
+  .desktop-insights-card { grid-column: span 4; order: 2; }
+  .desktop-transactions-card { grid-column: span 8; order: 3; }
+  .desktop-categories-card { grid-column: span 4; order: 4; }
+  .desktop-networth-card { grid-column: span 4; order: 5; }
+  .desktop-cards-card { grid-column: span 4; order: 6; }
+  .desktop-upcoming-card { grid-column: span 4; order: 7; }
+  .desktop-quick-card { grid-column: 1 / -1; order: 0; }
 
-  .desktop-networth-card,
-  .desktop-categories-card,
-  .desktop-cards-card,
-  .desktop-upcoming-card {
-    grid-column: span 5;
+  .desktop-spending-card,
+  .desktop-insights-card,
+  .desktop-transactions-card,
+  .desktop-categories-card {
+    align-self: stretch;
   }
 
   .desktop-chart-summary,
@@ -1905,6 +2137,82 @@ button {
 
   .chart-line.expense { stroke: var(--mc-blue); }
   .chart-line.income { stroke: var(--mc-green); stroke-width: 2.5; }
+
+  .chart-hover-line {
+    opacity: 0;
+    stroke: var(--mc-muted);
+    stroke-dasharray: 3 4;
+    stroke-width: 1;
+  }
+
+  .chart-point {
+    opacity: 0.35;
+    stroke: var(--mc-surface);
+    stroke-width: 2;
+    transition: opacity 120ms ease, r 120ms ease;
+  }
+
+  .chart-point.expense { fill: var(--mc-blue); }
+  .chart-point.income { fill: var(--mc-green); }
+
+  .chart-hit-area {
+    cursor: crosshair;
+    outline: none;
+  }
+
+  .chart-hit-area.active .chart-hover-line,
+  .chart-hit-area:focus .chart-hover-line,
+  .chart-hit-area.active .chart-point,
+  .chart-hit-area:focus .chart-point {
+    opacity: 1;
+  }
+
+  .desktop-chart-tooltip {
+    position: absolute;
+    z-index: 4;
+    min-width: 156px;
+    border: 1px solid var(--mc-line);
+    border-radius: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    transform: translate(-50%, calc(-100% - 8px));
+    background: var(--mc-elevated);
+    padding: 10px;
+    box-shadow: 0 12px 28px rgba(0, 8, 19, 0.24);
+    pointer-events: none;
+  }
+
+  .desktop-chart-tooltip.start { transform: translate(0, calc(-100% - 8px)); }
+  .desktop-chart-tooltip.end { transform: translate(-100%, calc(-100% - 8px)); }
+  .desktop-chart-tooltip.below { transform: translate(-50%, 8px); }
+  .desktop-chart-tooltip.below.start { transform: translate(0, 8px); }
+  .desktop-chart-tooltip.below.end { transform: translate(-100%, 8px); }
+
+  .desktop-chart-tooltip strong {
+    font-size: 11px;
+    text-transform: capitalize;
+  }
+
+  .desktop-chart-tooltip span {
+    display: grid;
+    grid-template-columns: 7px 1fr auto;
+    align-items: center;
+    gap: 5px;
+    color: var(--mc-muted);
+    font-size: 9px;
+  }
+
+  .desktop-chart-tooltip span i {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+  }
+
+  .desktop-chart-tooltip i.income { background: var(--mc-green); }
+  .desktop-chart-tooltip i.expense { background: var(--mc-blue); }
+  .desktop-chart-tooltip span b { color: var(--mc-ink); }
+  .desktop-chart-tooltip small { border-top: 1px solid var(--mc-line); padding-top: 5px; color: var(--mc-muted); font-size: 9px; }
 
   .desktop-chart-labels {
     display: flex;
@@ -2250,6 +2558,36 @@ button {
 
   .budget-inline-form .button {
     min-width: 0;
+  }
+
+  .settings-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-automation-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .settings-automation-item {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .settings-automation-item > span {
+    width: 28px;
+    height: 28px;
+  }
+
+  .settings-automation-item small {
+    display: none;
+  }
+
+  .settings-automation-item b {
+    font-size: 13px;
   }
 
   .hero-amount {
