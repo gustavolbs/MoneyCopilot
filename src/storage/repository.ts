@@ -267,6 +267,7 @@ export async function saveParsedTransactions(parsed: ParsedTransaction[], househ
         ? item.transfer_account_id ?? (await resolveAccountId(householdId, item.transfer_account_name_hint, inferTransferAccountType(item.transfer_account_name_hint)))
         : null;
     const createdAt = now();
+    const account = accountId ? (await listAccounts(householdId)).find((item) => item.id === accountId) : null;
     const transaction: Transaction = {
       id: createId(),
       household_id: householdId,
@@ -279,6 +280,7 @@ export async function saveParsedTransactions(parsed: ParsedTransaction[], househ
       amount: item.amount,
       type: item.type,
       transaction_date: item.transaction_date,
+      payment_method: item.type === 'expense' ? (account?.type === 'credit_card' ? 'credit_card' : 'cash') : null,
       notes: null,
       source: 'manual',
       recurrence_id: null,
@@ -322,7 +324,13 @@ function cleanAccountName(nameHint: string) {
   return nameHint.replace(/^(?:o|a|no|na|do|da|para)\s+/i, '').replace(/\s+/g, ' ').trim();
 }
 
-export async function createAccount(householdId: string, name: string, type: Account['type'], initialBalance = 0) {
+export async function createAccount(
+  householdId: string,
+  name: string,
+  type: Account['type'],
+  initialBalance = 0,
+  cardSettings?: { dueDay: number; bestPurchaseDay: number },
+) {
   const account: Account = {
     id: createId(),
     household_id: householdId,
@@ -330,6 +338,8 @@ export async function createAccount(householdId: string, name: string, type: Acc
     type,
     initial_balance: initialBalance,
     currency: 'BRL',
+    credit_card_due_day: type === 'credit_card' ? cardSettings?.dueDay ?? 10 : null,
+    credit_card_best_purchase_day: type === 'credit_card' ? cardSettings?.bestPurchaseDay ?? 3 : null,
     created_at: now(),
     updated_at: now(),
     deleted_at: null,
@@ -339,6 +349,21 @@ export async function createAccount(householdId: string, name: string, type: Acc
   });
   await enqueueMutation('accounts', account.id, 'upsert', account);
   return account;
+}
+
+export async function updateAccountCardSettings(account: Account, dueDay: number, bestPurchaseDay: number) {
+  const updated: Account = {
+    ...account,
+    credit_card_due_day: dueDay,
+    credit_card_best_purchase_day: bestPurchaseDay,
+    updated_at: now(),
+  };
+  await updateLocalDb((db) => {
+    const index = db.accounts.findIndex((item) => item.id === account.id);
+    if (index >= 0) db.accounts[index] = updated;
+  });
+  await enqueueMutation('accounts', updated.id, 'upsert', updated);
+  return updated;
 }
 
 export async function updateTransactionCategory(transaction: Transaction, categoryId: string, createRule = true) {
@@ -351,7 +376,7 @@ export async function updateTransactionCategory(transaction: Transaction, catego
   if (createRule) await createRuleFromCorrection(transaction.household_id, transaction.normalized_description, categoryId, transaction.type);
 }
 
-export async function updateTransaction(transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'notes'>>) {
+export async function updateTransaction(transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'payment_method' | 'notes'>>) {
   const updated: Transaction = {
     ...transaction,
     ...patch,

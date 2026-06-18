@@ -2,6 +2,7 @@ export type TransactionType = 'income' | 'expense' | 'transfer';
 export type CategoryType = 'income' | 'expense' | 'both';
 export type MatchType = 'contains' | 'exact' | 'regex';
 export type AccountType = 'checking' | 'credit_card' | 'cash' | 'reserve' | 'investment' | 'other';
+export type PaymentMethod = 'cash' | 'credit_card';
 
 export type Profile = {
   id: string;
@@ -24,6 +25,8 @@ export type Account = {
   type: AccountType;
   initial_balance: number;
   currency: string;
+  credit_card_due_day: number | null;
+  credit_card_best_purchase_day: number | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -54,6 +57,7 @@ export type Transaction = {
   amount: number;
   type: TransactionType;
   transaction_date: string;
+  payment_method: PaymentMethod | null;
   notes: string | null;
   source: 'manual' | 'imported' | 'recurring';
   recurrence_id: string | null;

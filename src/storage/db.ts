@@ -54,7 +54,20 @@ function normalize(state: LocalDbState): LocalDbState {
   for (const category of defaultCategories) {
     if (!categoryIds.has(category.id)) categories.push(category);
   }
-  return { ...initialState(), ...state, categories };
+  const accounts = (state.accounts ?? []).map((account) => ({
+    ...account,
+    credit_card_due_day: account.type === 'credit_card' ? account.credit_card_due_day ?? 10 : null,
+    credit_card_best_purchase_day: account.type === 'credit_card' ? account.credit_card_best_purchase_day ?? 3 : null,
+  }));
+  const creditCardIds = new Set(accounts.filter((account) => account.type === 'credit_card').map((account) => account.id));
+  const transactions = (state.transactions ?? []).map((transaction) => ({
+    ...transaction,
+    payment_method:
+      transaction.type === 'expense'
+        ? transaction.payment_method ?? (transaction.account_id && creditCardIds.has(transaction.account_id) ? 'credit_card' : 'cash')
+        : null,
+  }));
+  return { ...initialState(), ...state, accounts, transactions, categories };
 }
 
 export async function initLocalDb() {

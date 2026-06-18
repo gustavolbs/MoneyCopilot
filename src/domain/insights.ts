@@ -1,6 +1,6 @@
-import { budgetProgress } from './finance';
+import { budgetProgress, transactionBelongsToMonth } from './finance';
 import { formatCurrency } from './normalize';
-import { Budget, Category, Recurrence, Transaction } from './types';
+import { Account, Budget, Category, Recurrence, Transaction } from './types';
 
 export type Insight = {
   id: string;
@@ -14,14 +14,15 @@ export function generateInsights(params: {
   categories: Category[];
   budgets: Budget[];
   recurrences: Recurrence[];
+  accounts?: Account[];
   month: string;
   previousMonth: string;
 }) {
-  const { transactions, categories, budgets, recurrences, month, previousMonth } = params;
+  const { transactions, categories, budgets, recurrences, accounts = [], month, previousMonth } = params;
   const insights: Insight[] = [];
   const expenseFor = (categoryId: string, key: string) =>
     transactions
-      .filter((item) => !item.deleted_at && item.type === 'expense' && item.category_id === categoryId && item.transaction_date.startsWith(key))
+      .filter((item) => !item.deleted_at && item.type === 'expense' && item.category_id === categoryId && transactionBelongsToMonth(item, key, accounts))
       .reduce((sum, item) => sum + item.amount, 0);
 
   for (const category of categories.filter((item) => item.type !== 'income')) {
@@ -39,7 +40,7 @@ export function generateInsights(params: {
 
   for (const budget of budgets.filter((item) => !item.deleted_at && item.month === month)) {
     const category = categories.find((item) => item.id === budget.category_id);
-    const progress = budgetProgress(transactions, budget);
+    const progress = budgetProgress(transactions, budget, accounts);
     if (progress.percent >= 0.8) {
       insights.push({
         id: `budget-${budget.id}`,

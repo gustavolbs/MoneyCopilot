@@ -15,6 +15,7 @@ import {
   reconcileHouseholds,
   createRecurrence,
   createAccount,
+  updateAccountCardSettings,
   createTransactionsFromInput,
   getHousehold,
   listAccounts,
@@ -82,12 +83,13 @@ type AppState = {
   addQuickInput: (input: string) => Promise<void>;
   changeTransactionCategory: (transaction: Transaction, categoryId: string) => Promise<void>;
   deleteTransaction: (transaction: Transaction) => Promise<void>;
-  editTransaction: (transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'notes'>>) => Promise<void>;
+  editTransaction: (transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'payment_method' | 'notes'>>) => Promise<void>;
   saveBudget: (categoryId: string, amount: number) => Promise<void>;
   addRecurrence: (transaction: Transaction) => Promise<void>;
   sync: () => Promise<void>;
   resetCache: () => Promise<void>;
-  addAccount: (name: string, type: Account['type']) => Promise<void>;
+  addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
+  updateCreditCardSettings: (account: Account, dueDay: number, bestPurchaseDay: number) => Promise<void>;
   loadFamily: () => Promise<void>;
   inviteMember: (email: string) => Promise<void>;
   removeMember: (userId: string) => Promise<void>;
@@ -237,7 +239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       recurrences,
       pendingMutations,
       syncLogs,
-      insights: generateInsights({ transactions, categories, budgets, recurrences, month: currentMonth, previousMonth: monthKey(previous) }),
+      insights: generateInsights({ transactions, categories, budgets, recurrences, accounts, month: currentMonth, previousMonth: monthKey(previous) }),
     });
   },
 
@@ -326,10 +328,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().refresh();
   },
 
-  addAccount: async (name, type) => {
+  addAccount: async (name, type, cardSettings) => {
     const household = get().household;
     if (!household || !name.trim()) return;
-    await createAccount(household.id, name.trim(), type);
+    await createAccount(household.id, name.trim(), type, 0, cardSettings);
+    await get().refresh();
+    void get().sync();
+  },
+
+  updateCreditCardSettings: async (account, dueDay, bestPurchaseDay) => {
+    await updateAccountCardSettings(account, dueDay, bestPurchaseDay);
     await get().refresh();
     void get().sync();
   },

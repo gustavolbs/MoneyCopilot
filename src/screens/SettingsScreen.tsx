@@ -11,9 +11,11 @@ import { useAppStore } from '@/store/appStore';
 
 export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
   const { colors } = useTheme();
-  const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount, familyMembers, familyInvites, loadFamily, inviteMember, removeMember } = useAppStore();
+  const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount, updateCreditCardSettings, familyMembers, familyInvites, loadFamily, inviteMember, removeMember } = useAppStore();
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<Account['type']>('reserve');
+  const [cardDueDay, setCardDueDay] = useState('10');
+  const [cardBestPurchaseDay, setCardBestPurchaseDay] = useState('3');
   const [inviteEmail, setInviteEmail] = useState('');
   const [familyError, setFamilyError] = useState<string | null>(null);
   const isOwner = familyMembers.some((member) => member.isYou && member.role === 'owner');
@@ -97,7 +99,24 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
       <Card style={{ gap: 8 }}>
         <Label>Contas</Label>
         {accounts.map((account) => (
-          <RowItem key={account.id} title={account.name} subtitle={account.type === 'reserve' ? 'Cofrinho/Reserva' : account.type} />
+          <div key={account.id}>
+            <RowItem
+              title={account.name}
+              subtitle={
+                account.type === 'reserve'
+                  ? 'Cofrinho/Reserva'
+                  : account.type === 'credit_card'
+                    ? `Cartao · vence dia ${account.credit_card_due_day ?? '-'} · melhor compra dia ${account.credit_card_best_purchase_day ?? '-'}`
+                    : account.type
+              }
+            />
+            {account.type === 'credit_card' ? (
+              <CreditCardSettings
+                account={account}
+                onSave={(dueDay, bestPurchaseDay) => updateCreditCardSettings(account, dueDay, bestPurchaseDay)}
+              />
+            ) : null}
+          </div>
         ))}
         <div className="separator" style={{ backgroundColor: colors.line }} />
         <Field value={accountName} onChangeText={setAccountName} placeholder="Ex: Cofrinho Casa" />
@@ -114,9 +133,23 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
             </button>
           ))}
         </div>
+        {accountType === 'credit_card' ? (
+          <div className="card-date-grid">
+            <div>
+              <Label>Dia de vencimento</Label>
+              <Field value={cardDueDay} onChangeText={setCardDueDay} placeholder="10" keyboardType="numeric" />
+            </div>
+            <div>
+              <Label>Melhor dia de compra</Label>
+              <Field value={cardBestPurchaseDay} onChangeText={setCardBestPurchaseDay} placeholder="3" keyboardType="numeric" />
+            </div>
+          </div>
+        ) : null}
         <Button
           onPress={() => {
-            void addAccount(accountName, accountType);
+            const dueDay = clampDay(cardDueDay, 10);
+            const bestPurchaseDay = clampDay(cardBestPurchaseDay, 3);
+            void addAccount(accountName, accountType, accountType === 'credit_card' ? { dueDay, bestPurchaseDay } : undefined);
             setAccountName('');
           }}
           variant="ghost"
@@ -161,5 +194,28 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
         </Button>
       </Card>
     </Screen>
+  );
+}
+
+function clampDay(value: string, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 31 ? parsed : fallback;
+}
+
+function CreditCardSettings({ account, onSave }: { account: Account; onSave: (dueDay: number, bestPurchaseDay: number) => Promise<void> }) {
+  const [dueDay, setDueDay] = useState(String(account.credit_card_due_day ?? 10));
+  const [bestPurchaseDay, setBestPurchaseDay] = useState(String(account.credit_card_best_purchase_day ?? 3));
+
+  useEffect(() => {
+    setDueDay(String(account.credit_card_due_day ?? 10));
+    setBestPurchaseDay(String(account.credit_card_best_purchase_day ?? 3));
+  }, [account.credit_card_best_purchase_day, account.credit_card_due_day]);
+
+  return (
+    <div className="credit-card-settings">
+      <Field value={dueDay} onChangeText={setDueDay} placeholder="Vencimento" keyboardType="numeric" />
+      <Field value={bestPurchaseDay} onChangeText={setBestPurchaseDay} placeholder="Melhor compra" keyboardType="numeric" />
+      <Button onPress={() => void onSave(clampDay(dueDay, 10), clampDay(bestPurchaseDay, 3))} variant="ghost">Salvar dias</Button>
+    </div>
   );
 }
