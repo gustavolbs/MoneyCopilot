@@ -37,6 +37,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
     categories,
     rules,
     recurrences,
+    syncStatus,
     syncLogs,
     resetCache,
     signOut,
@@ -58,6 +59,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
   const [familyError, setFamilyError] = useState<string | null>(null);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [showAccountForm, setShowAccountForm] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{ tone: 'success' | 'warning' | 'error'; message: string } | null>(null);
   const isOwner = familyMembers.some((member) => member.isYou && member.role === 'owner');
   const cardCount = accounts.filter((account) => account.type === 'credit_card').length;
   const reserveCount = accounts.filter((account) => account.type === 'reserve').length;
@@ -89,6 +91,19 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
     } catch (error) {
       setFamilyError(error instanceof Error ? error.message : 'Não foi possível convidar.');
     }
+  };
+
+  const handleSync = async () => {
+    if (syncStatus === 'syncing') return;
+    setSyncFeedback(null);
+    const result = await sync();
+    setSyncFeedback(
+      result === 'idle'
+        ? { tone: 'success', message: 'Sincronização concluída.' }
+        : result === 'offline'
+          ? { tone: 'warning', message: 'Sem conexão. A sincronização ficou pendente.' }
+          : { tone: 'error', message: 'Não foi possível sincronizar agora.' },
+    );
   };
 
   const accountTypes: Array<{ label: string; value: Account['type'] }> = [
@@ -170,16 +185,19 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
           <SettingsCardHeader
             icon={<Cloud size={18} />}
             title="Dados e sincronização"
-            detail={isSupabaseConfigured() ? 'Nuvem configurada' : 'Somente neste dispositivo'}
+            detail={syncStatus === 'syncing' ? 'Sincronizando dados...' : isSupabaseConfigured() ? 'Nuvem configurada' : 'Somente neste dispositivo'}
             color={isSupabaseConfigured() ? colors.green : colors.gold}
             action="Sincronizar"
-            onAction={() => void sync()}
+            actionLoading={syncStatus === 'syncing'}
+            onAction={() => void handleSync()}
           />
-          <div className="settings-sync-preview">
-            <span className="settings-status-pill" style={{ backgroundColor: `${isSupabaseConfigured() ? colors.green : colors.gold}18`, color: isSupabaseConfigured() ? colors.green : colors.gold }}>
-              {isSupabaseConfigured() ? 'Nuvem ativa' : 'Modo local'}
+          <div className="settings-sync-preview" role="status" aria-live="polite">
+            <span className="settings-status-pill" style={{ backgroundColor: `${syncStatus === 'error' ? colors.red : syncStatus === 'offline' ? colors.gold : colors.green}18`, color: syncStatus === 'error' ? colors.red : syncStatus === 'offline' ? colors.gold : colors.green }}>
+              {syncStatus === 'syncing' ? 'Sincronizando' : syncStatus === 'error' ? 'Erro' : syncStatus === 'offline' ? 'Offline' : isSupabaseConfigured() ? 'Nuvem ativa' : 'Modo local'}
             </span>
-            <small style={{ color: colors.muted }}>{syncLogs[0] ? `${formatDateTime(syncLogs[0].created_at)} · ${syncLogs[0].message}` : 'Nenhuma sincronização registrada.'}</small>
+            <small style={{ color: syncFeedback?.tone === 'error' ? colors.red : syncFeedback?.tone === 'warning' ? colors.gold : syncFeedback?.tone === 'success' ? colors.green : colors.muted }}>
+              {syncFeedback?.message ?? (syncLogs[0] ? `${formatDateTime(syncLogs[0].created_at)} · ${syncLogs[0].message}` : 'Nenhuma sincronização registrada.')}
+            </small>
           </div>
         </Card>
 
@@ -261,12 +279,12 @@ function SettingsStat({ icon, value, label, color }: { icon: React.ReactNode; va
   return <div className="settings-stat" style={{ borderColor: `${color}35` }}><span style={{ color, backgroundColor: `${color}18` }}>{icon}</span><strong>{value}</strong><small>{label}</small></div>;
 }
 
-function SettingsCardHeader({ icon, title, detail, color, action, onAction }: { icon: React.ReactNode; title: string; detail: string; color: string; action?: string; onAction?: () => void }) {
+function SettingsCardHeader({ icon, title, detail, color, action, actionLoading = false, onAction }: { icon: React.ReactNode; title: string; detail: string; color: string; action?: string; actionLoading?: boolean; onAction?: () => void }) {
   return (
     <div className="settings-section-heading">
       <span style={{ color, backgroundColor: `${color}18` }}>{icon}</span>
       <div><strong>{title}</strong><small>{detail}</small></div>
-      {action && onAction ? <button type="button" className="settings-card-action" onClick={onAction} style={{ color, backgroundColor: `${color}12` }}>{action}</button> : null}
+      {action && onAction ? <button type="button" className="settings-card-action" onClick={onAction} disabled={actionLoading} style={{ color, backgroundColor: `${color}12` }}>{actionLoading ? <span className="small-spinner" /> : action}</button> : null}
     </div>
   );
 }

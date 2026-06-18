@@ -1,4 +1,4 @@
-import { calculateAccountBalances } from '@/domain/finance';
+import { calculateAccountBalances, reservePositionDelta } from '@/domain/finance';
 import { parseTransactionInput } from '@/domain/parser';
 import { normalizeText } from '@/domain/normalize';
 import { Account, Budget, Category, CategorizationRule, Household, ParsedTransaction, Recurrence, Transaction, UserRules } from '@/domain/types';
@@ -392,12 +392,15 @@ export async function createReserveMovement(params: {
   userId: string | null;
   reserveAccountId: string;
   counterpartyAccountId?: string | null;
-  kind: 'deposit' | 'withdrawal' | 'yield';
+  kind: 'deposit' | 'withdrawal' | 'position';
   amount: number;
   date: string;
   description?: string;
 }) {
-  if (!Number.isFinite(params.amount) || params.amount <= 0) throw new Error('Informe um valor maior que zero.');
+  const isPosition = params.kind === 'position';
+  if (!Number.isFinite(params.amount) || (isPosition ? params.amount < 0 : params.amount <= 0)) {
+    throw new Error(isPosition ? 'Informe uma posição válida.' : 'Informe um valor maior que zero.');
+  }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(params.date) || Number.isNaN(Date.parse(`${params.date}T00:00:00`))) {
     throw new Error('Informe uma data válida.');
   }
@@ -407,37 +410,41 @@ export async function createReserveMovement(params: {
   const reserve = activeAccounts.find((account) => account.id === params.reserveAccountId);
   if (!reserve || reserve.type !== 'reserve') throw new Error('Cofrinho inválido.');
 
+  const householdTransactions = db.transactions.filter((transaction) => transaction.household_id === params.householdId);
+  const reserveBalance = calculateAccountBalances(householdTransactions, activeAccounts)
+    .find(({ account }) => account.id === reserve.id)?.balance ?? 0;
+
   const createdAt = now();
-  const isYield = params.kind === 'yield';
   const isDeposit = params.kind === 'deposit';
-  if (!isYield && !params.counterpartyAccountId) throw new Error('Selecione a conta de origem ou destino.');
+  if (!isPosition && !params.counterpartyAccountId) throw new Error('Selecione a conta de origem ou destino.');
   const counterparty = params.counterpartyAccountId
     ? activeAccounts.find((account) => account.id === params.counterpartyAccountId)
     : null;
-  if (!isYield && !counterparty) throw new Error('Conta de origem ou destino inválida.');
+  if (!isPosition && !counterparty) throw new Error('Conta de origem ou destino inválida.');
   if (counterparty?.id === reserve.id) throw new Error('Selecione uma conta diferente do cofrinho.');
   if (params.kind === 'withdrawal') {
-    const householdTransactions = db.transactions.filter((transaction) => transaction.household_id === params.householdId);
-    const reserveBalance = calculateAccountBalances(householdTransactions, activeAccounts)
-      .find(({ account }) => account.id === reserve.id)?.balance ?? 0;
     if (params.amount > reserveBalance) throw new Error('O saque não pode ser maior que o saldo do cofrinho.');
   }
 
-  const description = params.description?.trim() || (isYield ? 'Rendimento do cofrinho' : isDeposit ? 'Aporte no cofrinho' : 'Saque do cofrinho');
+  const positionDelta = isPosition ? reservePositionDelta(reserveBalance, params.amount) : 0;
+  if (isPosition && positionDelta === 0) throw new Error('A posição informada já é o saldo atual do cofrinho.');
+  const movementAmount = isPosition ? Math.abs(positionDelta) : params.amount;
+
+  const description = params.description?.trim() || (isPosition ? 'Atualização da posição do cofrinho' : isDeposit ? 'Aporte no cofrinho' : 'Saque do cofrinho');
   const transaction: Transaction = {
     id: createId(),
     household_id: params.householdId,
-    account_id: isYield || !isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
-    transfer_account_id: isYield ? null : isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
-    category_id: isYield ? 'cat_income_yield' : null,
+    account_id: isPosition || !isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
+    transfer_account_id: isPosition ? null : isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
+    category_id: isPosition ? 'cat_income_yield' : null,
     created_by: params.userId,
     description,
     normalized_description: normalizeText(description),
-    amount: params.amount,
-    type: isYield ? 'income' : 'transfer',
+    amount: movementAmount,
+    type: isPosition ? (positionDelta > 0 ? 'income' : 'expense') : 'transfer',
     transaction_date: params.date,
     payment_method: null,
-    notes: `reserve_movement:${params.kind}`,
+    notes: isPosition ? `reserve_movement:position;reported_position:${params.amount}` : `reserve_movement:${params.kind}`,
     source: 'manual',
     recurrence_id: null,
     created_at: createdAt,

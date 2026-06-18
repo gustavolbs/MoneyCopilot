@@ -3,9 +3,9 @@
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ChartNoAxesCombined,
   PiggyBank,
   Plus,
-  TrendingUp,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -13,13 +13,14 @@ import { Button, Card, Field, Label, Screen, Title } from "@/components/ui";
 import {
   calculateAccountBalances,
   reserveMovementDelta,
+  reservePositionDelta,
 } from "@/domain/finance";
 import { formatCurrency, formatDate, todayISODate } from "@/domain/normalize";
 import { Transaction } from "@/domain/types";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
 
-type MovementKind = "deposit" | "withdrawal" | "yield";
+type MovementKind = "deposit" | "withdrawal" | "position";
 
 const movementOptions: Array<{
   kind: MovementKind;
@@ -28,14 +29,17 @@ const movementOptions: Array<{
 }> = [
   { kind: "deposit", label: "Aportar", detail: "Transfere de outra conta" },
   { kind: "withdrawal", label: "Sacar", detail: "Transfere para outra conta" },
-  { kind: "yield", label: "Rendimento", detail: "Aumenta apenas o patrimônio" },
+  { kind: "position", label: "Atualizar posição", detail: "Informe o saldo atual" },
 ];
 
 function parseAmount(value: string) {
+  if (!value.trim()) return Number.NaN;
   return Number(value.replace(/\./g, "").replace(",", "."));
 }
 
 function movementLabel(transaction: Transaction, delta: number) {
+  if (transaction.notes?.startsWith("reserve_movement:position"))
+    return delta > 0 ? "Rendimento calculado" : "Variação negativa calculada";
   if (
     transaction.type === "income" &&
     transaction.category_id === "cat_income_yield"
@@ -92,6 +96,10 @@ export function ReservesScreen() {
   const reserveTotal = balances
     .filter(({ account }) => account.type === "reserve")
     .reduce((sum, item) => sum + item.balance, 0);
+  const reportedPosition = parseAmount(amount);
+  const calculatedPositionDelta = Number.isFinite(reportedPosition)
+    ? reservePositionDelta(selectedBalance, reportedPosition)
+    : null;
 
   const history = useMemo(() => {
     if (!selectedReserve) return [];
@@ -115,16 +123,18 @@ export function ReservesScreen() {
   const submitMovement = async () => {
     const numericAmount = parseAmount(amount);
     if (!selectedReserve) return setError("Selecione um cofrinho.");
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0)
-      return setError("Informe um valor maior que zero.");
-    if (kind !== "yield" && !counterpartyId)
+    if (!Number.isFinite(numericAmount) || (kind === "position" ? numericAmount < 0 : numericAmount <= 0))
+      return setError(kind === "position" ? "Informe uma posição válida." : "Informe um valor maior que zero.");
+    if (kind === "position" && reservePositionDelta(selectedBalance, numericAmount) === 0)
+      return setError("A posição informada já é o saldo atual do cofrinho.");
+    if (kind !== "position" && !counterpartyId)
       return setError("Cadastre e selecione uma conta de origem ou destino.");
     setSaving(true);
     setError(null);
     try {
       await addReserveMovement({
         reserveAccountId: selectedReserve.id,
-        counterpartyAccountId: kind === "yield" ? null : counterpartyId,
+        counterpartyAccountId: kind === "position" ? null : counterpartyId,
         kind,
         amount: numericAmount,
         date,
@@ -155,8 +165,8 @@ export function ReservesScreen() {
         <Label>Patrimônio separado do fluxo mensal</Label>
         <Title>Cofrinhos</Title>
         <p className="reserve-intro" style={{ color: colors.muted }}>
-          Aportes e saques são transferências internas. Rendimentos aumentam o
-          patrimônio sem inflar suas receitas.
+          Aportes e saques são transferências internas. Para registrar rendimentos,
+          informe a posição atual e o MoneyCopilot calcula a variação.
         </p>
       </div>
 
@@ -258,7 +268,7 @@ export function ReservesScreen() {
                 ) : option.kind === "withdrawal" ? (
                   <ArrowUpRight size={18} />
                 ) : (
-                  <TrendingUp size={18} />
+                  <ChartNoAxesCombined size={18} />
                 )}
                 <span>
                   <strong>{option.label}</strong>
@@ -269,11 +279,11 @@ export function ReservesScreen() {
           </div>
           <div className="reserve-form-grid">
             <label>
-              <span style={{ color: colors.muted }}>Valor</span>
+              <span style={{ color: colors.muted }}>{kind === "position" ? "Posição atual" : "Valor"}</span>
               <Field
                 value={amount}
                 onChangeText={setAmount}
-                placeholder="0,00"
+                placeholder={kind === "position" ? "Ex: 1.250,00" : "0,00"}
                 keyboardType="numeric"
               />
             </label>
@@ -291,7 +301,7 @@ export function ReservesScreen() {
                 }}
               />
             </label>
-            {kind !== "yield" ? (
+            {kind !== "position" ? (
               <label>
                 <span style={{ color: colors.muted }}>
                   {kind === "deposit" ? "Conta de origem" : "Conta de destino"}
@@ -322,23 +332,26 @@ export function ReservesScreen() {
                 value={description}
                 onChangeText={setDescription}
                 placeholder={
-                  kind === "yield"
-                    ? "Ex: Rendimento de junho"
+                  kind === "position"
+                    ? "Ex: Posição no fim de junho"
                     : "Detalhes do movimento"
                 }
               />
             </label>
           </div>
+          {kind === "position" && calculatedPositionDelta !== null ? (
+            <div className="reserve-position-preview" style={{ backgroundColor: colors.subtle, borderColor: colors.line }}>
+              <div><span style={{ color: colors.muted }}>Saldo registrado</span><strong>{formatCurrency(selectedBalance)}</strong></div>
+              <div><span style={{ color: colors.muted }}>{calculatedPositionDelta >= 0 ? "Rendimento calculado" : "Variação calculada"}</span><strong style={{ color: calculatedPositionDelta >= 0 ? colors.green : colors.red }}>{calculatedPositionDelta >= 0 ? "+" : "-"}{formatCurrency(Math.abs(calculatedPositionDelta))}</strong></div>
+            </div>
+          ) : null}
           {error ? (
             <p className="reserve-error" style={{ color: colors.red }}>
               {error}
             </p>
           ) : null}
           <Button onPress={() => void submitMovement()} loading={saving}>
-            Registrar{" "}
-            {movementOptions
-              .find((option) => option.kind === kind)
-              ?.label.toLowerCase()}
+            {kind === "position" ? "Atualizar posição" : `Registrar ${movementOptions.find((option) => option.kind === kind)?.label.toLowerCase()}`}
           </Button>
         </Card>
       ) : null}

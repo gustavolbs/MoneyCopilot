@@ -1,4 +1,4 @@
-import { Cloud, CloudOff, RefreshCcw } from 'lucide-react';
+import { CircleAlert, Cloud, CloudOff, RefreshCcw } from 'lucide-react';
 
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
@@ -8,12 +8,14 @@ export function SyncPill() {
   const { colors } = useTheme();
   const offline = syncStatus === 'offline';
   const syncing = syncStatus === 'syncing';
-  const Icon = offline ? CloudOff : syncing ? RefreshCcw : Cloud;
+  const failed = syncStatus === 'error';
+  const Icon = offline ? CloudOff : failed ? CircleAlert : syncing ? RefreshCcw : Cloud;
+  const tone = offline || failed ? colors.red : syncing ? colors.blue : colors.green;
 
   return (
-    <button type="button" onClick={() => void sync()} className="sync-pill" style={{ backgroundColor: offline ? `${colors.red}22` : `${colors.green}1F` }}>
-      <Icon size={14} color={offline ? colors.red : colors.green} />
-      <span style={{ color: colors.ink }}>{offline ? 'Offline' : syncing ? 'Sincronizando' : `${pendingMutations} pendente(s)`}</span>
+    <button type="button" onClick={() => void sync()} className="sync-pill" disabled={syncing} aria-live="polite" style={{ backgroundColor: `${tone}1F` }}>
+      <Icon className={syncing ? 'sync-pill-spinner' : undefined} size={14} color={tone} />
+      <span style={{ color: colors.ink }}>{offline ? 'Offline' : failed ? 'Erro ao sincronizar' : syncing ? 'Sincronizando...' : `${pendingMutations} pendente(s)`}</span>
     </button>
   );
 }

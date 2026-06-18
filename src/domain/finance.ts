@@ -76,10 +76,16 @@ export function transactionBelongsToMonth(
   return transactionMonth(transaction, accounts) === month;
 }
 
-export function isPatrimonialIncome(transaction: Transaction, accounts: Account[] = []) {
-  if (transaction.type !== 'income' || transaction.category_id !== 'cat_income_yield') return false;
+export function isPatrimonialAdjustment(transaction: Transaction, accounts: Account[] = []) {
+  if (transaction.type !== 'income' && transaction.type !== 'expense') return false;
   const account = accounts.find((item) => item.id === transaction.account_id);
-  return account?.type === 'reserve' || account?.type === 'investment';
+  const isPatrimonialAccount = account?.type === 'reserve' || account?.type === 'investment';
+  const isAdjustment = transaction.category_id === 'cat_income_yield' || transaction.notes?.startsWith('reserve_movement:position');
+  return Boolean(isPatrimonialAccount && isAdjustment);
+}
+
+export function reservePositionDelta(currentBalance: number, reportedPosition: number) {
+  return Math.round((reportedPosition - currentBalance) * 100) / 100;
 }
 
 export function reserveMovementDelta(transaction: Transaction, reserveAccountId: string) {
@@ -113,10 +119,10 @@ export function metricsForMonth(
     transactionBelongsToMonth(item, month, accounts),
   );
   const income = monthTransactions
-    .filter((item) => item.type === "income" && !isPatrimonialIncome(item, accounts))
+    .filter((item) => item.type === "income" && !isPatrimonialAdjustment(item, accounts))
     .reduce((sum, item) => sum + item.amount, 0);
   const expense = monthTransactions
-    .filter((item) => item.type === "expense")
+    .filter((item) => item.type === "expense" && !isPatrimonialAdjustment(item, accounts))
     .reduce((sum, item) => sum + item.amount, 0);
   const recurringProjection = recurrences
     .filter(
@@ -130,7 +136,7 @@ export function metricsForMonth(
     );
   const byCategoryRaw = new Map<string, number>();
   monthTransactions
-    .filter((item) => item.type === "expense")
+    .filter((item) => item.type === "expense" && !isPatrimonialAdjustment(item, accounts))
     .forEach((item) => {
       const key = item.category_id ?? "cat_expense_other";
       byCategoryRaw.set(key, (byCategoryRaw.get(key) ?? 0) + item.amount);
@@ -150,6 +156,7 @@ export function metricsForMonth(
     .filter(
       (item) =>
         item.type === "expense" &&
+        !isPatrimonialAdjustment(item, accounts) &&
         (item.source === "recurring" || item.recurrence_id),
     )
     .reduce((sum, item) => sum + item.amount, 0);
@@ -182,7 +189,7 @@ export function metricsForMonth(
     accountBalances,
     byCategory,
     largestExpenses: monthTransactions
-      .filter((item) => item.type === "expense")
+      .filter((item) => item.type === "expense" && !isPatrimonialAdjustment(item, accounts))
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5),
   };

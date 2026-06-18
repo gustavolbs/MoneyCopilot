@@ -696,6 +696,14 @@ button {
   font-weight: 500;
 }
 
+.sync-pill:disabled {
+  cursor: wait;
+}
+
+.sync-pill-spinner {
+  animation: spin 850ms linear infinite;
+}
+
 .tab-button.active {
   border-radius: 8px;
   background: color-mix(in srgb, var(--mc-ink) 6%, transparent);
@@ -2148,8 +2156,24 @@ button {
 }
 
 .settings-card-action {
+  min-width: 76px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 7px 9px;
   font-size: 9px;
+}
+
+.settings-card-action:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.settings-card-action .small-spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
 }
 
 .settings-icon-action {

@@ -88,11 +88,11 @@ type AppState = {
   editTransaction: (transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'payment_method' | 'notes'>>) => Promise<void>;
   saveBudget: (categoryId: string, amount: number) => Promise<void>;
   addRecurrence: (transaction: Transaction) => Promise<void>;
-  sync: () => Promise<void>;
+  sync: () => Promise<SyncStatus>;
   resetCache: () => Promise<void>;
   addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
   editAccount: (account: Account, patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>) => Promise<void>;
-  addReserveMovement: (params: { reserveAccountId: string; counterpartyAccountId?: string | null; kind: 'deposit' | 'withdrawal' | 'yield'; amount: number; date: string; description?: string }) => Promise<void>;
+  addReserveMovement: (params: { reserveAccountId: string; counterpartyAccountId?: string | null; kind: 'deposit' | 'withdrawal' | 'position'; amount: number; date: string; description?: string }) => Promise<void>;
   updateCreditCardSettings: (account: Account, dueDay: number, bestPurchaseDay: number) => Promise<void>;
   loadFamily: () => Promise<void>;
   inviteMember: (email: string) => Promise<void>;
@@ -307,7 +307,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const online = await isOnline();
     if (!online) {
       set({ syncStatus: 'offline' });
-      return;
+      return 'offline';
     }
     set({ syncStatus: 'syncing' });
     try {
@@ -322,8 +322,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       await get().refresh();
       set({ syncStatus: 'idle' });
+      return 'idle';
     } catch (error) {
       set({ syncStatus: 'error', error: error instanceof Error ? error.message : 'Erro de sincronização' });
+      return 'error';
     }
   },
 
@@ -350,7 +352,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addReserveMovement: async (params) => {
     const { household, userId } = get();
-    if (!household || !Number.isFinite(params.amount) || params.amount <= 0) return;
+    if (!household || !Number.isFinite(params.amount) || (params.kind === 'position' ? params.amount < 0 : params.amount <= 0)) return;
     await createReserveMovement({ ...params, householdId: household.id, userId });
     await get().refresh();
     void get().sync();
