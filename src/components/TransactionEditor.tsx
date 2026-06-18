@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { CategoryBadge } from '@/components/CategoryBadge';
 import { transactionMonth } from '@/domain/finance';
-import { formatCurrency } from '@/domain/normalize';
 import { Account, Category, PaymentMethod, Transaction, TransactionType } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 
@@ -58,8 +57,8 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
     Number.isFinite(parsedAmount) &&
     parsedAmount >= 0 &&
     !(type === 'expense' && paymentMethod === 'credit_card' && !cardAccountId);
-  const selectedCategory = categories.find((category) => category.id === categoryId);
   const creditCards = accounts.filter((account) => account.type === 'credit_card');
+  const selectedCard = creditCards.find((account) => account.id === cardAccountId);
   const cashAccountId = accounts.find((account) => account.type === 'checking')?.id ?? accounts.find((account) => account.type === 'cash')?.id ?? transaction.account_id;
   const draftTransaction: Transaction = {
     ...transaction,
@@ -75,13 +74,9 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="transaction-editor-title">
       <div className="modal-panel" style={{ backgroundColor: colors.bg }}>
         <header className="transaction-editor-header">
-          <div className="transaction-editor-summary">
-            <p style={{ color: colors.muted }}>Editar transacao</p>
-            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>{description || transaction.description}</h2>
-            <strong style={{ color: transaction.type === 'income' ? colors.green : transaction.type === 'transfer' ? colors.blue : colors.red }}>
-              {transaction.type === 'income' ? '+' : transaction.type === 'transfer' ? '' : '-'}{formatCurrency(parsedAmount || transaction.amount)}
-            </strong>
-            {type !== 'transfer' ? <CategoryBadge category={selectedCategory} label={selectedCategory?.name ?? 'Categoria'} /> : <CategoryBadge label="Transferencia" />}
+          <div>
+            <p style={{ color: colors.muted }}>Transacao</p>
+            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>Editar lancamento</h2>
           </div>
           <button type="button" onClick={onClose} className="icon-button" style={{ backgroundColor: colors.subtle }} aria-label="Fechar">
             <X size={20} color={colors.ink} />
@@ -90,26 +85,36 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
 
         <div className="transaction-editor-content">
           <div className="editor-field-grid">
-            <Field value={description} onChangeText={setDescription} placeholder="Nome da transacao" />
-            <Field value={amount} onChangeText={setAmount} placeholder="0,00" keyboardType="numeric" />
+            <label className="editor-field-label">
+              <span style={{ color: colors.muted }}>Descricao</span>
+              <Field value={description} onChangeText={setDescription} placeholder="Nome da transacao" />
+            </label>
+            <label className="editor-field-label">
+              <span style={{ color: colors.muted }}>Valor</span>
+              <Field value={amount} onChangeText={setAmount} placeholder="0,00" keyboardType="numeric" />
+            </label>
           </div>
 
-          <div className="editor-type-row">
-            {typeOptions.map((option) => (
-              <button
-                type="button"
-                key={option.value}
-                onClick={() => setType(option.value)}
-                className="editor-type-button"
-                style={{ backgroundColor: type === option.value ? colors.blue : colors.subtle, color: type === option.value ? '#00111F' : colors.ink }}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="editor-section">
+            <span className="editor-section-label" style={{ color: colors.muted }}>Tipo</span>
+            <div className="editor-type-row">
+              {typeOptions.map((option) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  onClick={() => setType(option.value)}
+                  className="editor-type-button"
+                  style={{ backgroundColor: type === option.value ? colors.blue : colors.subtle, color: type === option.value ? '#00111F' : colors.ink }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {type === 'expense' ? (
-            <div className="editor-payment-block">
+            <div className="editor-section">
+              <span className="editor-section-label" style={{ color: colors.muted }}>Pagamento</span>
               <div className="editor-payment-row">
                 <button
                   type="button"
@@ -117,7 +122,7 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
                   onClick={() => setPaymentMethod('cash')}
                   style={{ backgroundColor: paymentMethod === 'cash' ? colors.blue : colors.subtle, color: paymentMethod === 'cash' ? '#00111F' : colors.ink }}
                 >
-                  A vista
+                  À vista
                 </button>
                 <button
                   type="button"
@@ -126,31 +131,32 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
                   disabled={!creditCards.length}
                   style={{ backgroundColor: paymentMethod === 'credit_card' ? colors.blue : colors.subtle, color: paymentMethod === 'credit_card' ? '#00111F' : colors.ink }}
                 >
-                  Cartao de credito
+                  Cartao
                 </button>
               </div>
               {paymentMethod === 'credit_card' ? (
-                <div className="editor-card-list">
-                  {creditCards.map((card) => (
-                    <button
-                      type="button"
-                      key={card.id}
-                      className={`editor-card-option${cardAccountId === card.id ? ' selected' : ''}`}
-                      onClick={() => setCardAccountId(card.id)}
-                      style={{ borderColor: cardAccountId === card.id ? colors.blue : colors.line, backgroundColor: cardAccountId === card.id ? colors.subtle : colors.surface, color: colors.ink }}
-                    >
-                      <span>{card.name}</span>
-                      <small style={{ color: colors.muted }}>Vence dia {card.credit_card_due_day ?? '-'} · melhor compra dia {card.credit_card_best_purchase_day ?? '-'}</small>
-                    </button>
-                  ))}
-                </div>
+                <label className="editor-field-label">
+                  <span style={{ color: colors.muted }}>Cartao utilizado</span>
+                  <select
+                    className="editor-select"
+                    value={cardAccountId ?? ''}
+                    onChange={(event) => setCardAccountId(event.currentTarget.value || null)}
+                    style={{ borderColor: colors.line, backgroundColor: colors.elevated, color: colors.ink }}
+                  >
+                    <option value="">Selecione um cartao</option>
+                    {creditCards.map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}
+                  </select>
+                  {selectedCard ? <small style={{ color: colors.muted }}>Vence dia {selectedCard.credit_card_due_day ?? '-'} · melhor compra dia {selectedCard.credit_card_best_purchase_day ?? '-'}</small> : null}
+                </label>
               ) : null}
-              <p className="editor-competence" style={{ color: colors.muted }}>Entra em {competenceLabel}</p>
+              <p className="editor-competence" style={{ color: colors.muted }}>Competencia: <strong style={{ color: colors.ink }}>{competenceLabel}</strong></p>
             </div>
           ) : null}
 
           {type !== 'transfer' ? (
-            <div className="editor-category-list" aria-label="Categorias">
+            <div className="editor-section">
+              <span className="editor-section-label" style={{ color: colors.muted }}>Categoria</span>
+              <div className="editor-category-list" aria-label="Categorias">
                 {availableCategories.map((category) => (
                   <CategoryBadge
                     key={category.id}
@@ -159,12 +165,13 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
                     onClick={() => setCategoryId(category.id)}
                   />
                 ))}
+              </div>
             </div>
           ) : null}
         </div>
 
         <footer className="modal-footer" style={{ borderColor: colors.line }}>
-          <Button onPress={() => void onDelete()} variant="ghost">Excluir</Button>
+          <Button onPress={() => void onDelete()} variant="danger">Excluir</Button>
           <Button
             onPress={() => {
               if (!canSave) return;

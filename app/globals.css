@@ -683,8 +683,7 @@ button {
 }
 
 .modal-panel {
-  width: min(720px, calc(100vw - 36px));
-  max-height: min(720px, calc(100dvh - 36px));
+  width: min(560px, calc(100vw - 36px));
   display: flex;
   flex-direction: column;
   border-radius: 14px;
@@ -693,44 +692,35 @@ button {
 
 .transaction-editor-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--mc-line);
+  padding: 18px 20px;
 }
 
-.transaction-editor-summary {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.transaction-editor-summary p,
-.transaction-editor-summary h2 {
+.transaction-editor-header p,
+.transaction-editor-header h2 {
   margin: 0;
 }
 
-.transaction-editor-summary h2 {
-  max-width: 34rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 22px;
-  line-height: 28px;
+.transaction-editor-header p {
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.transaction-editor-summary strong {
-  font-size: 28px;
-  line-height: 32px;
+.transaction-editor-header h2 {
+  font-size: 19px;
+  line-height: 24px;
 }
 
 .transaction-editor-content {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow: auto;
-  padding: 0 20px 18px;
+  gap: 18px;
+  padding: 20px;
 }
 
 .editor-field-grid {
@@ -745,6 +735,45 @@ button {
   gap: 8px;
 }
 
+.editor-section,
+.editor-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.editor-section-label,
+.editor-field-label > span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.editor-select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 0 12px;
+  outline: none;
+}
+
+.editor-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 2px 4px 4px 2px;
+}
+
+.editor-category-list .category-badge {
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.editor-field-label > small {
+  font-size: 10px;
+}
+
 .editor-type-button {
   min-height: 40px;
   border: 0;
@@ -752,18 +781,6 @@ button {
   padding: 0 12px;
   font-size: 13px;
   font-weight: 500;
-}
-
-.editor-category-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.editor-payment-block {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .period-notice {
@@ -785,18 +802,49 @@ button {
   line-height: 1.45;
 }
 
-.transaction-payment-cell span,
-.transaction-payment-cell small {
+.transaction-payment-cell > small {
   display: block;
   white-space: nowrap;
 }
 
-.transaction-payment-cell span {
-  font-size: 12px;
+.payment-badge {
+  display: inline-flex;
+  max-width: calc(100% - 6px);
+  min-height: 22px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 9px;
   font-weight: 750;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.transaction-payment-cell small {
+.payment-badge.cash {
+  border-color: color-mix(in srgb, var(--mc-green) 38%, transparent);
+  background: color-mix(in srgb, var(--mc-green) 14%, transparent);
+  color: color-mix(in srgb, var(--mc-green) 75%, var(--mc-ink));
+}
+
+.payment-badge.credit-card {
+  border-color: color-mix(in srgb, var(--mc-blue) 38%, transparent);
+  background: color-mix(in srgb, var(--mc-blue) 14%, transparent);
+  color: color-mix(in srgb, var(--mc-blue) 75%, var(--mc-ink));
+}
+
+.payment-badge-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payment-empty {
+  font-size: 12px;
+}
+
+.transaction-payment-cell > small {
   font-size: 10px;
   margin-top: 2px;
 }
@@ -821,41 +869,12 @@ button {
   opacity: 0.45;
 }
 
-.editor-card-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.editor-card-option {
-  min-width: 0;
-  border: 1px solid;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  padding: 10px 12px;
-  text-align: left;
-}
-
-.editor-card-option.selected {
-  box-shadow: 0 0 0 1px var(--mc-blue);
-}
-
-.editor-card-option span {
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.editor-card-option small {
-  font-size: 10px;
-}
-
 .editor-competence {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
+  margin: 1px 0 0;
+  border-radius: 8px;
+  background: var(--mc-subtle);
+  padding: 9px 11px;
+  font-size: 11px;
   text-transform: capitalize;
 }
 
@@ -1563,16 +1582,39 @@ button {
 
   .modal-panel {
     width: 100%;
-    max-height: 92dvh;
     border-radius: 14px 14px 0 0;
   }
 
   .editor-field-grid,
-  .editor-type-row,
-  .editor-payment-row,
-  .editor-card-list,
   .card-date-grid,
   .credit-card-settings {
     grid-template-columns: 1fr;
+  }
+
+  .transaction-editor-header {
+    padding: 14px 16px;
+  }
+
+  .transaction-editor-content {
+    gap: 13px;
+    padding: 14px 16px;
+  }
+
+  .editor-category-list {
+    gap: 5px;
+  }
+
+  .editor-category-list .category-badge {
+    min-height: 26px;
+    padding: 3px 7px;
+    font-size: 9px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .modal-footer .button {
+    min-height: 44px;
   }
 }

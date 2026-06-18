@@ -33,7 +33,7 @@ export function TransactionRow({
     transaction.type === "expense"
       ? transaction.payment_method === "credit_card"
         ? (card?.name ?? "Cartao de credito")
-        : "A vista"
+        : "À vista"
       : "-";
   const effectiveDate = transactionEffectiveDate(transaction, accounts);
   const paymentDetail =
@@ -66,7 +66,14 @@ export function TransactionRow({
         />
       </td>
       <td className="transaction-payment-cell">
-        <span style={{ color: colors.ink }}>{paymentLabel}</span>
+        {transaction.type === "expense" ? (
+          <span className={`payment-badge ${transaction.payment_method === "credit_card" ? "credit-card" : "cash"}`}>
+            <span aria-hidden="true">{transaction.payment_method === "credit_card" ? "💳" : "💵"}</span>
+            <span className="payment-badge-label">{paymentLabel}</span>
+          </span>
+        ) : (
+          <span className="payment-empty" style={{ color: colors.muted }}>-</span>
+        )}
         {paymentDetail ? (
           <small style={{ color: colors.muted }}>{paymentDetail}</small>
         ) : null}
