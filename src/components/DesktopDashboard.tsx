@@ -12,6 +12,7 @@ import { useAppStore } from "@/store/appStore";
 import { useThemeStore } from "@/store/themeStore";
 
 import { QuickEntry } from "./QuickEntry";
+import { categoryEmoji } from "./CategoryBadge";
 import { SyncPill } from "./SyncPill";
 import { TransactionRow } from "./TransactionRow";
 
@@ -135,7 +136,7 @@ export function DesktopDashboard() {
           <div className="desktop-category-list">
             {current.byCategory.slice(0, 6).map((item) => (
               <div className="desktop-category-row" key={item.category.id}>
-                <span className="desktop-category-icon" style={{ backgroundColor: `${item.category.color}24`, color: item.category.color }}>{item.category.icon}</span>
+                <span className="desktop-category-icon" style={{ backgroundColor: `${item.category.color}24`, color: item.category.color }}>{categoryEmoji(item.category)}</span>
                 <div className="desktop-category-main">
                   <div><span>{item.category.name}</span><strong>{formatCurrency(item.amount)}</strong></div>
                   <div className="desktop-track"><i style={{ width: `${(item.amount / maxCategory) * 100}%`, backgroundColor: item.category.color }} /></div>
