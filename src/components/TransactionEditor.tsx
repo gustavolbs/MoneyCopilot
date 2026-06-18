@@ -44,6 +44,20 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
     setCardAccountId(transaction.payment_method === 'credit_card' ? transaction.account_id : accounts.find((account) => account.type === 'credit_card')?.id ?? null);
   }, [accounts, transaction]);
 
+  useEffect(() => {
+    if (!transaction) return;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose, transaction]);
+
   const availableCategories = useMemo(
     () => categories.filter((category) => type === 'transfer' || category.type === type || category.type === 'both'),
     [categories, type],
@@ -71,8 +85,16 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
   const competenceLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(competenceYear, competenceMonthNumber - 1, 1));
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="transaction-editor-title">
-      <div className="modal-panel" style={{ backgroundColor: colors.bg }}>
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="transaction-editor-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-panel" style={{ backgroundColor: colors.bg }} onMouseDown={(event) => event.stopPropagation()}>
         <header className="transaction-editor-header">
           <div>
             <p style={{ color: colors.muted }}>Transacao</p>

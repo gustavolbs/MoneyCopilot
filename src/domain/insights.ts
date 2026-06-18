@@ -1,4 +1,4 @@
-import { budgetProgress, transactionBelongsToMonth } from './finance';
+import { budgetProgress, metricsForMonth, transactionBelongsToMonth } from './finance';
 import { formatCurrency } from './normalize';
 import { Account, Budget, Category, Recurrence, Transaction } from './types';
 
@@ -7,7 +7,19 @@ export type Insight = {
   title: string;
   body: string;
   tone: 'good' | 'warning' | 'info';
+  percentage?: number;
+  comparison?: string;
 };
+
+function offsetMonth(month: string, offset: number) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const date = new Date(year, monthNumber - 1 + offset, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function percentageChange(current: number, previous: number) {
+  return previous > 0 ? ((current - previous) / previous) * 100 : null;
+}
 
 export function generateInsights(params: {
   transactions: Transaction[];
@@ -20,6 +32,61 @@ export function generateInsights(params: {
 }) {
   const { transactions, categories, budgets, recurrences, accounts = [], month, previousMonth } = params;
   const insights: Insight[] = [];
+  const currentMetrics = metricsForMonth(transactions, categories, month, recurrences, accounts);
+  const previousMetrics = metricsForMonth(transactions, categories, previousMonth, recurrences, accounts);
+  const previousThreeMetrics = [-1, -2, -3].map((offset) => metricsForMonth(transactions, categories, offsetMonth(month, offset), recurrences, accounts));
+  const previousMonthsWithExpenses = previousThreeMetrics.filter((metrics) => metrics.expense > 0);
+  const previousThreeExpenseAverage = previousMonthsWithExpenses.length
+    ? previousMonthsWithExpenses.reduce((sum, metrics) => sum + metrics.expense, 0) / previousMonthsWithExpenses.length
+    : 0;
+  const expenseChange = percentageChange(currentMetrics.expense, previousMetrics.expense);
+  const incomeChange = percentageChange(currentMetrics.income, previousMetrics.income);
+  const averageChange = percentageChange(currentMetrics.expense, previousThreeExpenseAverage);
+
+  if (expenseChange !== null) {
+    insights.push({
+      id: 'expense-month-comparison',
+      title: `Despesas ${expenseChange <= 0 ? 'diminuiram' : 'aumentaram'} ${Math.abs(Math.round(expenseChange))}%`,
+      body: `${formatCurrency(currentMetrics.expense)} neste mes contra ${formatCurrency(previousMetrics.expense)} no mes anterior.`,
+      tone: expenseChange <= 0 ? 'good' : 'warning',
+      percentage: expenseChange,
+      comparison: 'vs. mes anterior',
+    });
+  }
+
+  if (incomeChange !== null) {
+    insights.push({
+      id: 'income-month-comparison',
+      title: `Receitas ${incomeChange >= 0 ? 'aumentaram' : 'diminuiram'} ${Math.abs(Math.round(incomeChange))}%`,
+      body: `${formatCurrency(currentMetrics.income)} neste mes contra ${formatCurrency(previousMetrics.income)} no mes anterior.`,
+      tone: incomeChange >= 0 ? 'good' : 'warning',
+      percentage: incomeChange,
+      comparison: 'vs. mes anterior',
+    });
+  }
+
+  if (averageChange !== null) {
+    insights.push({
+      id: 'expense-three-month-average',
+      title: `${Math.abs(Math.round(averageChange))}% ${averageChange <= 0 ? 'abaixo' : 'acima'} da media recente`,
+      body: `Media de despesas dos ${previousMonthsWithExpenses.length} meses anteriores com dados: ${formatCurrency(previousThreeExpenseAverage)}.`,
+      tone: averageChange <= 0 ? 'good' : 'warning',
+      percentage: averageChange,
+      comparison: 'vs. media de 3 meses',
+    });
+  }
+
+  if (currentMetrics.income > 0) {
+    const savingsRate = (currentMetrics.balance / currentMetrics.income) * 100;
+    insights.push({
+      id: 'monthly-savings-rate',
+      title: `Taxa de economia em ${Math.round(savingsRate)}%`,
+      body: `${formatCurrency(currentMetrics.balance)} de saldo sobre ${formatCurrency(currentMetrics.income)} em receitas.`,
+      tone: savingsRate >= 0 ? 'good' : 'warning',
+      percentage: savingsRate,
+      comparison: 'da receita mensal',
+    });
+  }
   const expenseFor = (categoryId: string, key: string) =>
     transactions
       .filter((item) => !item.deleted_at && item.type === 'expense' && item.category_id === categoryId && transactionBelongsToMonth(item, key, accounts))
@@ -28,12 +95,15 @@ export function generateInsights(params: {
   for (const category of categories.filter((item) => item.type !== 'income')) {
     const current = expenseFor(category.id, month);
     const previous = expenseFor(category.id, previousMonth);
-    if (current > 0 && previous > 0 && current > previous * 1.2) {
+    const change = percentageChange(current, previous);
+    if (current > 0 && change !== null && Math.abs(change) >= 20) {
       insights.push({
         id: `growth-${category.id}`,
-        title: `${category.name} cresceu`,
-        body: `Voce gastou ${Math.round(((current - previous) / previous) * 100)}% a mais que no mes passado.`,
-        tone: 'warning',
+        title: `${category.name} ${change >= 0 ? 'cresceu' : 'diminuiu'} ${Math.abs(Math.round(change))}%`,
+        body: `${formatCurrency(current)} neste mes contra ${formatCurrency(previous)} no mes passado.`,
+        tone: change >= 0 ? 'warning' : 'good',
+        percentage: change,
+        comparison: 'vs. mes anterior',
       });
     }
   }
@@ -47,6 +117,8 @@ export function generateInsights(params: {
         title: `${category?.name ?? 'Categoria'} em ${Math.round(progress.percent * 100)}%`,
         body: `Voce ja usou ${formatCurrency(progress.spent)} de ${formatCurrency(budget.amount)}.`,
         tone: progress.percent >= 1 ? 'warning' : 'info',
+        percentage: progress.percent * 100,
+        comparison: 'do orcamento',
       });
     }
   }
@@ -60,5 +132,5 @@ export function generateInsights(params: {
     });
   }
 
-  return insights.slice(0, 8);
+  return insights.slice(0, 10);
 }
