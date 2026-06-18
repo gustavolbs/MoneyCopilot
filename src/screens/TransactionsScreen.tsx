@@ -1,7 +1,6 @@
 "use client";
 
-import { addMonths, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { addMonths } from "date-fns";
 import { ArrowDownRight, ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -10,7 +9,7 @@ import { TransactionEditor } from "@/components/TransactionEditor";
 import { TransactionRow } from "@/components/TransactionRow";
 import { Card, Field, Label, Screen, Title } from "@/components/ui";
 import { isReserveMovement, transactionBelongsToMonth } from "@/domain/finance";
-import { formatCurrency, monthKey, normalizeText } from "@/domain/normalize";
+import { formatCurrency, formatMonthYear, monthKey, normalizeText } from "@/domain/normalize";
 import { Transaction, TransactionType } from "@/domain/types";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
@@ -30,9 +29,9 @@ export function TransactionsScreen() {
   const [payment, setPayment] = useState<PaymentFilter>("all");
   const now = new Date();
   const periodOptions: Array<{ id: PeriodFilter; label: string; month: string | null; detail: string }> = [
-    { id: "previous", label: "Mês anterior", month: monthKey(addMonths(now, -1)), detail: format(addMonths(now, -1), "MMM yyyy", { locale: ptBR }) },
-    { id: "current", label: "Este mês", month: monthKey(now), detail: format(now, "MMM yyyy", { locale: ptBR }) },
-    { id: "next", label: "Próximo mês", month: monthKey(addMonths(now, 1)), detail: format(addMonths(now, 1), "MMM yyyy", { locale: ptBR }) },
+    { id: "previous", label: "Mês anterior", month: monthKey(addMonths(now, -1)), detail: formatMonthYear(addMonths(now, -1)) },
+    { id: "current", label: "Este mês", month: monthKey(now), detail: formatMonthYear(now) },
+    { id: "next", label: "Próximo mês", month: monthKey(addMonths(now, 1)), detail: formatMonthYear(addMonths(now, 1)) },
     { id: "all", label: "Histórico", month: null, detail: "Todos" },
   ];
   const selectedPeriod = periodOptions.find((option) => option.id === period)!;

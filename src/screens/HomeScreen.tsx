@@ -1,7 +1,5 @@
 "use client";
 
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Moon, Sun } from "lucide-react";
 
 import { CategoryBars } from "@/components/FinanceCharts";
@@ -12,7 +10,7 @@ import { SyncPill } from "@/components/SyncPill";
 import { TransactionRow } from "@/components/TransactionRow";
 import { Card, Label, Screen, Title } from "@/components/ui";
 import { isReserveMovement, metricsForMonth } from "@/domain/finance";
-import { formatCurrency, monthKey } from "@/domain/normalize";
+import { formatCurrency, formatMonthYear, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
 import { useThemeStore } from "@/store/themeStore";
@@ -28,8 +26,8 @@ export function HomeScreen() {
     recurrences,
     accounts,
   );
-  const monthLabel = format(new Date(), "MMMM yyyy", { locale: ptBR });
-  const periodLabel = `Período observado: ${format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}`;
+  const monthLabel = formatMonthYear(new Date());
+  const periodLabel = `Período observado: ${monthLabel}`;
   const recentTransactions = transactions.filter((transaction) => !isReserveMovement(transaction, accounts));
 
   return (

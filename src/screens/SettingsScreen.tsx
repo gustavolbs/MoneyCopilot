@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { SyncPill } from '@/components/SyncPill';
 import { Button, Card, Field, Label, RowItem, Screen, Title } from '@/components/ui';
+import { formatDateTime } from '@/domain/normalize';
 import { Account } from '@/domain/types';
 import { isSupabaseConfigured } from '@/lib/env';
 import { useTheme } from '@/lib/theme';
@@ -220,7 +221,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
         {openSection === 'sync' ? <div className="settings-collapsible-content">
         <Button onPress={() => void sync()} variant="ghost">Sincronizar agora</Button>
         {syncLogs.slice(0, 5).map((log) => (
-          <p key={`${log.created_at}-${log.message}`} className="sync-log" style={{ color: colors.muted }}>{log.created_at.slice(11, 19)} · {log.message}</p>
+          <p key={`${log.created_at}-${log.message}`} className="sync-log" style={{ color: colors.muted }}>{formatDateTime(log.created_at)} · {log.message}</p>
         ))}
         </div> : null}
       </Card>

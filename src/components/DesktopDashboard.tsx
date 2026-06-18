@@ -1,12 +1,11 @@
 "use client";
 
-import { format, subMonths } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { subMonths } from "date-fns";
 import { ArrowDownRight, ArrowUpRight, CalendarDays, CreditCard, Lightbulb, Moon, Sun, WalletCards } from "lucide-react";
 import { useState } from "react";
 
 import { isReserveMovement, metricsForMonth, transactionMonth } from "@/domain/finance";
-import { formatCurrency, monthKey } from "@/domain/normalize";
+import { formatCurrency, formatDate, formatMonthShort, formatMonthYear, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
 import { useThemeStore } from "@/store/themeStore";
@@ -31,7 +30,7 @@ export function DesktopDashboard() {
   const months = Array.from({ length: 6 }, (_, index) => subMonths(now, 5 - index));
   const series = months.map((date) => ({
     key: monthKey(date),
-    label: format(date, "MMM", { locale: ptBR }).replace(".", ""),
+    label: formatMonthShort(date),
     metrics: metricsForMonth(transactions, categories, monthKey(date), recurrences, accounts),
   }));
   const current = series.at(-1)!.metrics;
@@ -65,7 +64,7 @@ export function DesktopDashboard() {
         <div>
           <span className="desktop-eyebrow">Visão geral</span>
           <h1>Dashboard</h1>
-          <p>{format(now, "MMMM 'de' yyyy", { locale: ptBR })} · despesas de cartão pela fatura</p>
+          <p>{formatMonthYear(now)} · despesas de cartão pela fatura</p>
         </div>
         <div className="desktop-header-actions">
           <SyncPill />
@@ -187,7 +186,7 @@ export function DesktopDashboard() {
             {upcomingRecurrences.map((recurrence) => (
               <div className="desktop-invoice-row" key={recurrence.id}>
                 <span className="desktop-list-icon"><CalendarDays size={17} /></span>
-                <div><strong>{recurrence.description}</strong><small>{recurrence.next_due_date.split("-").reverse().join("/")} · {recurrence.frequency}</small></div>
+                <div><strong>{recurrence.description}</strong><small>{formatDate(recurrence.next_due_date)} · {recurrence.frequency}</small></div>
                 <b>{formatCurrency(recurrence.amount)}</b>
               </div>
             ))}

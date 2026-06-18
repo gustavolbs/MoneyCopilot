@@ -1,13 +1,12 @@
 "use client";
 
-import { format, subMonths } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { subMonths } from "date-fns";
 import { ArrowDownRight, ArrowUpRight, Lightbulb, PiggyBank, ReceiptText, TrendingUp, WalletCards } from "lucide-react";
 
 import { PeriodNotice } from "@/components/PeriodNotice";
 import { Card, Label, Screen, Title } from "@/components/ui";
 import { metricsForMonth } from "@/domain/finance";
-import { formatCurrency, monthKey } from "@/domain/normalize";
+import { formatCurrency, formatMonthShort, formatMonthYear, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
 
@@ -18,7 +17,7 @@ export function InsightsScreen() {
   const monthlySeries = [3, 2, 1, 0].map((offset) => {
     const date = subMonths(now, offset);
     return {
-      label: format(date, "MMM", { locale: ptBR }).replace(".", ""),
+      label: formatMonthShort(date),
       metrics: metricsForMonth(transactions, categories, monthKey(date), recurrences, accounts),
     };
   });
@@ -44,7 +43,7 @@ export function InsightsScreen() {
         <Title>Insights</Title>
       </div>
 
-      <PeriodNotice label={`Período observado: ${monthKey()}`} detail="Comparações por competência, incluindo cartões no mês de vencimento da fatura." />
+      <PeriodNotice label={`Período observado: ${formatMonthYear(monthKey())}`} detail="Comparações por competência, incluindo cartões no mês de vencimento da fatura." />
 
       <div className="insights-kpi-grid">
         <VisualMetric icon={<ReceiptText size={18} />} label="Despesas" value={formatCurrency(metrics.expense)} percentage={expenseChange} inverse />

@@ -7,7 +7,7 @@ import { CategoryBadge, categoryEmoji } from "@/components/CategoryBadge";
 import { PeriodNotice } from "@/components/PeriodNotice";
 import { Button, Card, Field, Label, Screen, Title } from "@/components/ui";
 import { budgetProgress, transactionBelongsToMonth } from "@/domain/finance";
-import { formatCurrency, monthKey } from "@/domain/normalize";
+import { formatCurrency, formatDate, formatMonthYear, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
 
@@ -16,6 +16,7 @@ export function BudgetsScreen() {
   const { categories, budgets, transactions, accounts, saveBudget } = useAppStore();
   const expenseCategories = categories.filter((category) => category.type === "expense");
   const currentMonth = monthKey();
+  const currentMonthLabel = formatMonthYear(currentMonth);
   const monthBudgets = budgets.filter((budget) => budget.month === currentMonth && !budget.deleted_at);
   const budgetItems = useMemo(() => monthBudgets.map((budget) => ({
     budget,
@@ -81,11 +82,11 @@ export function BudgetsScreen() {
   return (
     <Screen>
       <div className="stack small">
-        <Label>Competência {currentMonth}</Label>
+        <Label>Competência {currentMonthLabel}</Label>
         <Title>Orçamentos</Title>
       </div>
 
-      <PeriodNotice label={`Período observado: ${currentMonth}`} detail="Limites acompanham a competência da compra e o vencimento das faturas." />
+      <PeriodNotice label={`Período observado: ${currentMonthLabel}`} detail="Limites acompanham a competência da compra e o vencimento das faturas." />
 
       <Card style={{ gap: 18 }}>
         <div className="budget-overview">
@@ -181,7 +182,7 @@ export function BudgetsScreen() {
                     const isCard = transaction.payment_method === "credit_card";
                     return (
                       <div className="budget-transaction-item" key={transaction.id} style={{ borderColor: colors.line }}>
-                        <div><strong>{transaction.description}</strong><small style={{ color: colors.muted }}>{transaction.transaction_date.split("-").reverse().join("/")}</small></div>
+                        <div><strong>{transaction.description}</strong><small style={{ color: colors.muted }}>{formatDate(transaction.transaction_date)}</small></div>
                         <span className={`payment-badge ${isCard ? "credit-card" : "cash"}`}><span aria-hidden="true">{isCard ? "💳" : "💵"}</span><span className="payment-badge-label">{isCard ? card?.name ?? "Cartão" : "À vista"}</span></span>
                         <b style={{ color: colors.red }}>-{formatCurrency(transaction.amount)}</b>
                       </div>

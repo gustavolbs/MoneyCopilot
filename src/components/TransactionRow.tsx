@@ -1,6 +1,6 @@
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { transactionEffectiveDate } from "@/domain/finance";
-import { formatCurrency } from "@/domain/normalize";
+import { formatCurrency, formatDate } from "@/domain/normalize";
 import { Account, Category, Transaction } from "@/domain/types";
 import { useTheme } from "@/lib/theme";
 
@@ -39,7 +39,7 @@ export function TransactionRow({
   const paymentDetail =
     transaction.type === "expense" &&
     transaction.payment_method === "credit_card"
-      ? `Fatura em ${effectiveDate.split("-").reverse().join("/")}`
+      ? `Fatura em ${formatDate(effectiveDate)}`
       : null;
 
   return (
@@ -54,7 +54,7 @@ export function TransactionRow({
             {transaction.description}
           </span>
           <span className="transaction-date" style={{ color: colors.muted }}>
-            {transaction.transaction_date}
+            {formatDate(transaction.transaction_date)}
           </span>
         </button>
       </td>

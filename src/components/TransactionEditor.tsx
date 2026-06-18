@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { CategoryBadge } from '@/components/CategoryBadge';
 import { transactionMonth } from '@/domain/finance';
+import { formatMonthYear } from '@/domain/normalize';
 import { Account, Category, PaymentMethod, Transaction, TransactionType } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 
@@ -81,8 +82,7 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
     account_id: type === 'expense' && paymentMethod === 'credit_card' ? cardAccountId : cashAccountId,
   };
   const competenceMonth = transactionMonth(draftTransaction, accounts);
-  const [competenceYear, competenceMonthNumber] = competenceMonth.split('-').map(Number);
-  const competenceLabel = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(competenceYear, competenceMonthNumber - 1, 1));
+  const competenceLabel = formatMonthYear(competenceMonth);
 
   return (
     <div

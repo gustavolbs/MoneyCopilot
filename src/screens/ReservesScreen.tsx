@@ -14,7 +14,7 @@ import {
   calculateAccountBalances,
   reserveMovementDelta,
 } from "@/domain/finance";
-import { formatCurrency, todayISODate } from "@/domain/normalize";
+import { formatCurrency, formatDate, todayISODate } from "@/domain/normalize";
 import { Transaction } from "@/domain/types";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
@@ -373,10 +373,7 @@ export function ReservesScreen() {
                     <strong>{transaction.description}</strong>
                     <small style={{ color: colors.muted }}>
                       {movementLabel(transaction, delta)} ·{" "}
-                      {transaction.transaction_date
-                        .split("-")
-                        .reverse()
-                        .join("/")}
+                      {formatDate(transaction.transaction_date)}
                     </small>
                   </div>
                   <div>
