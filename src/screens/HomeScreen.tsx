@@ -11,7 +11,7 @@ import { QuickEntry } from "@/components/QuickEntry";
 import { SyncPill } from "@/components/SyncPill";
 import { TransactionRow } from "@/components/TransactionRow";
 import { Card, Label, Screen, Title } from "@/components/ui";
-import { metricsForMonth } from "@/domain/finance";
+import { isReserveMovement, metricsForMonth } from "@/domain/finance";
 import { formatCurrency, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
@@ -30,6 +30,7 @@ export function HomeScreen() {
   );
   const monthLabel = format(new Date(), "MMMM yyyy", { locale: ptBR });
   const periodLabel = `Período observado: ${format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}`;
+  const recentTransactions = transactions.filter((transaction) => !isReserveMovement(transaction, accounts));
 
   return (
     <Screen>
@@ -114,11 +115,11 @@ export function HomeScreen() {
 
         <Card>
         <Label>Recentes (todo o histórico)</Label>
-          {transactions.length ? (
+          {recentTransactions.length ? (
             <div className="transaction-table-wrap compact">
               <table className="transaction-table">
                 <tbody>
-                  {transactions.slice(0, 6).map((transaction) => (
+                  {recentTransactions.slice(0, 6).map((transaction) => (
                     <TransactionRow
                       key={transaction.id}
                       transaction={transaction}
@@ -130,7 +131,7 @@ export function HomeScreen() {
               </table>
             </div>
           ) : null}
-          {!transactions.length ? <p className="muted" style={{ color: colors.muted }}>Nenhum lançamento ainda.</p> : null}
+          {!recentTransactions.length ? <p className="muted" style={{ color: colors.muted }}>Nenhum lançamento ainda.</p> : null}
         </Card>
       </div>
       </div>

@@ -15,6 +15,7 @@ import {
   reconcileHouseholds,
   createRecurrence,
   createAccount,
+  createReserveMovement,
   updateAccount,
   updateAccountCardSettings,
   createTransactionsFromInput,
@@ -91,6 +92,7 @@ type AppState = {
   resetCache: () => Promise<void>;
   addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
   editAccount: (account: Account, patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>) => Promise<void>;
+  addReserveMovement: (params: { reserveAccountId: string; counterpartyAccountId?: string | null; kind: 'deposit' | 'withdrawal' | 'yield'; amount: number; date: string; description?: string }) => Promise<void>;
   updateCreditCardSettings: (account: Account, dueDay: number, bestPurchaseDay: number) => Promise<void>;
   loadFamily: () => Promise<void>;
   inviteMember: (email: string) => Promise<void>;
@@ -340,6 +342,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   editAccount: async (account, patch) => {
     await updateAccount(account, patch);
+    await get().refresh();
+    void get().sync();
+  },
+
+  addReserveMovement: async (params) => {
+    const { household, userId } = get();
+    if (!household || !Number.isFinite(params.amount) || params.amount <= 0) return;
+    await createReserveMovement({ ...params, householdId: household.id, userId });
     await get().refresh();
     void get().sync();
   },

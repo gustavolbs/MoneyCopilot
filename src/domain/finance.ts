@@ -76,6 +76,32 @@ export function transactionBelongsToMonth(
   return transactionMonth(transaction, accounts) === month;
 }
 
+export function isPatrimonialIncome(transaction: Transaction, accounts: Account[] = []) {
+  if (transaction.type !== 'income' || transaction.category_id !== 'cat_income_yield') return false;
+  const account = accounts.find((item) => item.id === transaction.account_id);
+  return account?.type === 'reserve' || account?.type === 'investment';
+}
+
+export function reserveMovementDelta(transaction: Transaction, reserveAccountId: string) {
+  if (transaction.type === 'transfer') {
+    const incoming = transaction.transfer_account_id === reserveAccountId ? transaction.amount : 0;
+    const outgoing = transaction.account_id === reserveAccountId ? transaction.amount : 0;
+    return incoming - outgoing;
+  }
+  if (transaction.account_id !== reserveAccountId) return 0;
+  if (transaction.type === 'income') return transaction.amount;
+  if (transaction.type === 'expense') return -transaction.amount;
+  return 0;
+}
+
+export function isReserveMovement(transaction: Transaction, accounts: Account[] = []) {
+  const reserveIds = new Set(accounts.filter((account) => account.type === 'reserve').map((account) => account.id));
+  return Boolean(
+    (transaction.account_id && reserveIds.has(transaction.account_id)) ||
+    (transaction.transfer_account_id && reserveIds.has(transaction.transfer_account_id)),
+  );
+}
+
 export function metricsForMonth(
   transactions: Transaction[],
   categories: Category[],
@@ -87,7 +113,7 @@ export function metricsForMonth(
     transactionBelongsToMonth(item, month, accounts),
   );
   const income = monthTransactions
-    .filter((item) => item.type === "income")
+    .filter((item) => item.type === "income" && !isPatrimonialIncome(item, accounts))
     .reduce((sum, item) => sum + item.amount, 0);
   const expense = monthTransactions
     .filter((item) => item.type === "expense")

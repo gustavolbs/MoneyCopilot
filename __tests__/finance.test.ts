@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { defaultCategories } from "@/domain/categories";
 import {
   budgetProgress,
+  calculateAccountBalances,
+  isReserveMovement,
   metricsForMonth,
+  reserveMovementDelta,
   transactionEffectiveDate,
   transactionMonth,
 } from "@/domain/finance";
@@ -118,6 +121,66 @@ describe("finance calculations", () => {
     expect(metrics.availableToSpend).toBe(5000);
     expect(metrics.reserveTotal).toBe(5000);
     expect(metrics.netWorth).toBe(10000);
+  });
+
+  it("adds reserve yield to net worth without inflating operational income", () => {
+    const reserve: Account = {
+      id: "reserve",
+      household_id: "h1",
+      name: "Reserva",
+      type: "reserve",
+      initial_balance: 1000,
+      currency: "BRL",
+      credit_card_due_day: null,
+      credit_card_best_purchase_day: null,
+      created_at: "",
+      updated_at: "",
+      deleted_at: null,
+    };
+    const metrics = metricsForMonth(
+      [tx({ id: "yield", type: "income", amount: 25, account_id: reserve.id, category_id: "cat_income_yield", payment_method: null })],
+      defaultCategories,
+      "2026-06",
+      [],
+      [reserve],
+    );
+
+    expect(metrics.income).toBe(0);
+    expect(metrics.balance).toBe(0);
+    expect(metrics.reserveTotal).toBe(1025);
+    expect(metrics.netWorth).toBe(1025);
+  });
+
+  it("tracks deposits, withdrawals and yield in the reserve history", () => {
+    const checking: Account = {
+      id: "checking",
+      household_id: "h1",
+      name: "Conta Corrente",
+      type: "checking",
+      initial_balance: 2000,
+      currency: "BRL",
+      credit_card_due_day: null,
+      credit_card_best_purchase_day: null,
+      created_at: "",
+      updated_at: "",
+      deleted_at: null,
+    };
+    const reserve: Account = { ...checking, id: "reserve", name: "Cofrinho", type: "reserve", initial_balance: 100 };
+    const movements = [
+      tx({ id: "deposit", type: "transfer", amount: 500, account_id: checking.id, transfer_account_id: reserve.id, category_id: null, payment_method: null }),
+      tx({ id: "yield", type: "income", amount: 20, account_id: reserve.id, category_id: "cat_income_yield", payment_method: null }),
+      tx({ id: "withdrawal", type: "transfer", amount: 150, account_id: reserve.id, transfer_account_id: checking.id, category_id: null, payment_method: null }),
+    ];
+
+    expect(movements.map((movement) => reserveMovementDelta(movement, reserve.id))).toEqual([500, 20, -150]);
+    expect(movements.every((movement) => isReserveMovement(movement, [checking, reserve]))).toBe(true);
+    expect(calculateAccountBalances(movements, [checking, reserve]).map(({ balance }) => balance)).toEqual([1650, 470]);
+    expect(metricsForMonth(movements, defaultCategories, "2026-06", [], [checking, reserve])).toMatchObject({
+      income: 0,
+      expense: 0,
+      reserveTotal: 470,
+      netWorth: 2120,
+    });
   });
 
   it("computes budget progress status", () => {

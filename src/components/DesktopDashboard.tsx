@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { ArrowDownRight, ArrowUpRight, CalendarDays, CreditCard, Lightbulb, Moon, Sun, WalletCards } from "lucide-react";
 import { useState } from "react";
 
-import { metricsForMonth, transactionMonth } from "@/domain/finance";
+import { isReserveMovement, metricsForMonth, transactionMonth } from "@/domain/finance";
 import { formatCurrency, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
@@ -39,7 +39,7 @@ export function DesktopDashboard() {
   const expenseChange = previous?.expense ? (current.expense - previous.expense) / previous.expense : 0;
   const savingsRate = current.income > 0 ? current.balance / current.income : 0;
   const activeTransactions = transactions
-    .filter((transaction) => !transaction.deleted_at)
+    .filter((transaction) => !transaction.deleted_at && !isReserveMovement(transaction, accounts))
     .sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
   const maxCategory = Math.max(...current.byCategory.map((item) => item.amount), 1);
   const accountBalances = current.accountBalances

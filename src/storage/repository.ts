@@ -1,3 +1,4 @@
+import { calculateAccountBalances } from '@/domain/finance';
 import { parseTransactionInput } from '@/domain/parser';
 import { normalizeText } from '@/domain/normalize';
 import { Account, Budget, Category, CategorizationRule, Household, ParsedTransaction, Recurrence, Transaction, UserRules } from '@/domain/types';
@@ -384,6 +385,70 @@ export async function updateAccount(
   });
   await enqueueMutation('accounts', updated.id, 'upsert', updated);
   return updated;
+}
+
+export async function createReserveMovement(params: {
+  householdId: string;
+  userId: string | null;
+  reserveAccountId: string;
+  counterpartyAccountId?: string | null;
+  kind: 'deposit' | 'withdrawal' | 'yield';
+  amount: number;
+  date: string;
+  description?: string;
+}) {
+  if (!Number.isFinite(params.amount) || params.amount <= 0) throw new Error('Informe um valor maior que zero.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.date) || Number.isNaN(Date.parse(`${params.date}T00:00:00`))) {
+    throw new Error('Informe uma data válida.');
+  }
+
+  const db = await readLocalDb();
+  const activeAccounts = db.accounts.filter((account) => account.household_id === params.householdId && !account.deleted_at);
+  const reserve = activeAccounts.find((account) => account.id === params.reserveAccountId);
+  if (!reserve || reserve.type !== 'reserve') throw new Error('Cofrinho inválido.');
+
+  const createdAt = now();
+  const isYield = params.kind === 'yield';
+  const isDeposit = params.kind === 'deposit';
+  if (!isYield && !params.counterpartyAccountId) throw new Error('Selecione a conta de origem ou destino.');
+  const counterparty = params.counterpartyAccountId
+    ? activeAccounts.find((account) => account.id === params.counterpartyAccountId)
+    : null;
+  if (!isYield && !counterparty) throw new Error('Conta de origem ou destino inválida.');
+  if (counterparty?.id === reserve.id) throw new Error('Selecione uma conta diferente do cofrinho.');
+  if (params.kind === 'withdrawal') {
+    const householdTransactions = db.transactions.filter((transaction) => transaction.household_id === params.householdId);
+    const reserveBalance = calculateAccountBalances(householdTransactions, activeAccounts)
+      .find(({ account }) => account.id === reserve.id)?.balance ?? 0;
+    if (params.amount > reserveBalance) throw new Error('O saque não pode ser maior que o saldo do cofrinho.');
+  }
+
+  const description = params.description?.trim() || (isYield ? 'Rendimento do cofrinho' : isDeposit ? 'Aporte no cofrinho' : 'Saque do cofrinho');
+  const transaction: Transaction = {
+    id: createId(),
+    household_id: params.householdId,
+    account_id: isYield || !isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
+    transfer_account_id: isYield ? null : isDeposit ? params.reserveAccountId : params.counterpartyAccountId!,
+    category_id: isYield ? 'cat_income_yield' : null,
+    created_by: params.userId,
+    description,
+    normalized_description: normalizeText(description),
+    amount: params.amount,
+    type: isYield ? 'income' : 'transfer',
+    transaction_date: params.date,
+    payment_method: null,
+    notes: `reserve_movement:${params.kind}`,
+    source: 'manual',
+    recurrence_id: null,
+    created_at: createdAt,
+    updated_at: createdAt,
+    deleted_at: null,
+  };
+  await updateLocalDb((db) => {
+    db.transactions.push(transaction);
+  });
+  await enqueueMutation('transactions', transaction.id, 'upsert', transaction);
+  return transaction;
 }
 
 export async function updateTransactionCategory(transaction: Transaction, categoryId: string, createRule = true) {

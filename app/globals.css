@@ -616,7 +616,7 @@ button {
   bottom: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   border-top: 1px solid;
   padding: 8px max(8px, env(safe-area-inset-left))
     calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
@@ -653,6 +653,86 @@ button {
   text-overflow: ellipsis;
   max-width: 100%;
 }
+
+.reserve-intro,
+.reserve-error,
+.reserve-empty { margin: 0; font-size: 13px; line-height: 1.5; }
+
+.reserve-summary-grid,
+.reserve-account-grid,
+.reserve-kind-grid,
+.reserve-form-grid { display: grid; gap: 12px; }
+
+.reserve-summary-grid,
+.reserve-account-grid,
+.reserve-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.reserve-summary-grid strong { font-size: 22px; }
+.reserve-summary-grid small,
+.reserve-section-heading span { font-size: 11px; }
+
+.reserve-section-heading,
+.reserve-create-row,
+.reserve-history-row { display: flex; align-items: center; }
+
+.reserve-section-heading { justify-content: space-between; gap: 12px; }
+.reserve-section-heading strong,
+.reserve-section-heading .label { display: block; }
+
+.reserve-account-card,
+.reserve-kind-grid button { min-width: 0; border: 1px solid; border-radius: 8px; text-align: left; }
+
+.reserve-account-card {
+  display: flex;
+  min-height: 76px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px;
+}
+
+.reserve-account-card span { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.reserve-account-card strong { font-size: 16px; }
+.reserve-create-row { gap: 10px; }
+.reserve-create-row .field { flex: 1; }
+.reserve-create-row .button { flex: 0 0 auto; }
+.reserve-kind-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.reserve-kind-grid button { display: flex; align-items: center; gap: 9px; padding: 11px; }
+.reserve-kind-grid button > span,
+.reserve-kind-grid button strong,
+.reserve-kind-grid button small { display: block; }
+.reserve-kind-grid button small { margin-top: 2px; font-size: 9px; }
+
+.reserve-form-grid label { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
+.reserve-form-grid label > span { font-size: 11px; font-weight: 700; }
+.reserve-form-grid select { width: 100%; min-height: 46px; border: 1px solid; border-radius: 8px; padding: 0 12px; }
+.reserve-history { display: flex; flex-direction: column; }
+
+.reserve-history-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 11px;
+  border-bottom: 1px solid;
+  padding: 12px 0;
+}
+
+.reserve-history-row:last-child { border-bottom: 0; }
+.reserve-history-row > div strong,
+.reserve-history-row > div small { display: block; }
+.reserve-history-row > div small { margin-top: 3px; font-size: 10px; }
+.reserve-history-row > div:last-child { text-align: right; }
+
+.reserve-history-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.reserve-history-icon.positive { color: var(--mc-green); background: color-mix(in srgb, var(--mc-green) 12%, transparent); }
+.reserve-history-icon.negative { color: var(--mc-red); background: color-mix(in srgb, var(--mc-red) 12%, transparent); }
 
 .sync-pill {
   align-self: flex-start;
@@ -2798,6 +2878,15 @@ button {
   .home-dashboard-metrics > .card:first-child {
     grid-column: auto;
   }
+
+  .reserve-summary-grid,
+  .reserve-account-grid,
+  .reserve-form-grid,
+  .reserve-kind-grid { grid-template-columns: 1fr; }
+
+  .reserve-create-row { align-items: stretch; flex-direction: column; }
+  .reserve-history-row { grid-template-columns: auto minmax(0, 1fr); }
+  .reserve-history-row > div:last-child { grid-column: 2; text-align: left; }
 
   .insights-visual-grid,
   .insights-feed-grid {

@@ -9,7 +9,7 @@ import { PeriodNotice } from "@/components/PeriodNotice";
 import { TransactionEditor } from "@/components/TransactionEditor";
 import { TransactionRow } from "@/components/TransactionRow";
 import { Card, Field, Label, Screen, Title } from "@/components/ui";
-import { transactionBelongsToMonth } from "@/domain/finance";
+import { isReserveMovement, transactionBelongsToMonth } from "@/domain/finance";
 import { formatCurrency, monthKey, normalizeText } from "@/domain/normalize";
 import { Transaction, TransactionType } from "@/domain/types";
 import { useTheme } from "@/lib/theme";
@@ -39,13 +39,14 @@ export function TransactionsScreen() {
 
   const periodCounts = useMemo(() => new Map(periodOptions.map((option) => [
     option.id,
-    transactions.filter((transaction) => !transaction.deleted_at && (!option.month || transactionBelongsToMonth(transaction, option.month, accounts))).length,
+    transactions.filter((transaction) => !transaction.deleted_at && !isReserveMovement(transaction, accounts) && (!option.month || transactionBelongsToMonth(transaction, option.month, accounts))).length,
   ])), [accounts, periodOptions, transactions]);
 
   const filtered = useMemo(() => {
     const normalized = normalizeText(query);
     return transactions
       .filter((transaction) => !transaction.deleted_at)
+      .filter((transaction) => !isReserveMovement(transaction, accounts))
       .filter((transaction) => !selectedPeriod.month || transactionBelongsToMonth(transaction, selectedPeriod.month, accounts))
       .filter((transaction) => type === "all" || transaction.type === type)
       .filter((transaction) => categoryId === "all" || transaction.category_id === categoryId)

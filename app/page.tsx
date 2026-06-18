@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Home, Lightbulb, Settings, WalletCards } from 'lucide-react';
+import { BarChart3, Home, Lightbulb, PiggyBank, Settings, WalletCards } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { AppShell } from '@/components/AppShell';
@@ -8,17 +8,19 @@ import { SignInScreen } from '@/screens/SignInScreen';
 import { BudgetsScreen } from '@/screens/BudgetsScreen';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { InsightsScreen } from '@/screens/InsightsScreen';
+import { ReservesScreen } from '@/screens/ReservesScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { TransactionsScreen } from '@/screens/TransactionsScreen';
 import { isSupabaseConfigured } from '@/lib/env';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
 
-type TabId = 'home' | 'transactions' | 'budgets' | 'insights' | 'settings';
+type TabId = 'home' | 'transactions' | 'reserves' | 'budgets' | 'insights' | 'settings';
 
 const tabs: Array<{ id: TabId; label: string; icon: React.ComponentType<{ size?: number; color?: string }> }> = [
   { id: 'home', label: 'Início', icon: Home },
   { id: 'transactions', label: 'Transações', icon: WalletCards },
+  { id: 'reserves', label: 'Cofrinhos', icon: PiggyBank },
   { id: 'budgets', label: 'Orçamentos', icon: BarChart3 },
   { id: 'insights', label: 'Insights', icon: Lightbulb },
   { id: 'settings', label: 'Ajustes', icon: Settings },
@@ -53,6 +55,7 @@ export default function Page() {
     const screens: Record<TabId, React.ReactNode> = {
       home: <HomeScreen />,
       transactions: <TransactionsScreen />,
+      reserves: <ReservesScreen />,
       budgets: <BudgetsScreen />,
       insights: <InsightsScreen />,
       settings: <SettingsScreen onSignedOut={() => setTab('home')} />,
