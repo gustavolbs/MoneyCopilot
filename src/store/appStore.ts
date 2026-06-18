@@ -78,7 +78,7 @@ type AppState = {
   error: string | null;
   bootstrap: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ requiresEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
   ensureHousehold: (name?: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -185,11 +185,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ loading: false, error: error.message });
       throw error;
     }
-    set({ session: data.session, userId: data.user?.id ?? null, loading: false });
+    set({ session: data.session, userId: data.session ? data.user?.id ?? null : null, loading: false });
+    if (!data.session) return { requiresEmailConfirmation: true };
     await acceptInvitesAndPull();
     await get().ensureHousehold();
     await get().refresh();
     void get().sync();
+    return { requiresEmailConfirmation: false };
   },
 
   signOut: async () => {
