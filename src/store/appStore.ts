@@ -15,6 +15,7 @@ import {
   reconcileHouseholds,
   createRecurrence,
   createAccount,
+  updateAccount,
   updateAccountCardSettings,
   createTransactionsFromInput,
   getHousehold,
@@ -89,6 +90,7 @@ type AppState = {
   sync: () => Promise<void>;
   resetCache: () => Promise<void>;
   addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
+  editAccount: (account: Account, patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>) => Promise<void>;
   updateCreditCardSettings: (account: Account, dueDay: number, bestPurchaseDay: number) => Promise<void>;
   loadFamily: () => Promise<void>;
   inviteMember: (email: string) => Promise<void>;
@@ -332,6 +334,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const household = get().household;
     if (!household || !name.trim()) return;
     await createAccount(household.id, name.trim(), type, 0, cardSettings);
+    await get().refresh();
+    void get().sync();
+  },
+
+  editAccount: async (account, patch) => {
+    await updateAccount(account, patch);
     await get().refresh();
     void get().sync();
   },

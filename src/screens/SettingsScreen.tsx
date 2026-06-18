@@ -1,5 +1,6 @@
 'use client';
 
+import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { SyncPill } from '@/components/SyncPill';
@@ -11,13 +12,14 @@ import { useAppStore } from '@/store/appStore';
 
 export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
   const { colors } = useTheme();
-  const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount, updateCreditCardSettings, familyMembers, familyInvites, loadFamily, inviteMember, removeMember } = useAppStore();
+  const { household, accounts, categories, rules, recurrences, syncLogs, resetCache, signOut, sync, addAccount, editAccount, familyMembers, familyInvites, loadFamily, inviteMember, removeMember } = useAppStore();
   const [accountName, setAccountName] = useState('');
   const [accountType, setAccountType] = useState<Account['type']>('reserve');
   const [cardDueDay, setCardDueDay] = useState('10');
   const [cardBestPurchaseDay, setCardBestPurchaseDay] = useState('3');
   const [inviteEmail, setInviteEmail] = useState('');
   const [familyError, setFamilyError] = useState<string | null>(null);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const isOwner = familyMembers.some((member) => member.isYou && member.role === 'owner');
 
   useEffect(() => {
@@ -99,7 +101,7 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
       <Card style={{ gap: 8 }}>
         <Label>Contas</Label>
         {accounts.map((account) => (
-          <div key={account.id}>
+          <div key={account.id} className="settings-account-item" style={{ borderColor: colors.line }}>
             <RowItem
               title={account.name}
               subtitle={
@@ -109,11 +111,22 @@ export function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
                     ? `Cartao · vence dia ${account.credit_card_due_day ?? '-'} · melhor compra dia ${account.credit_card_best_purchase_day ?? '-'}`
                     : account.type
               }
+              right={
+                <button type="button" className="account-edit-button" onClick={() => setEditingAccountId(editingAccountId === account.id ? null : account.id)} style={{ color: colors.blue, backgroundColor: colors.subtle }}>
+                  <Pencil size={14} />
+                  Editar
+                </button>
+              }
             />
-            {account.type === 'credit_card' ? (
-              <CreditCardSettings
+            {editingAccountId === account.id ? (
+              <AccountEditor
                 account={account}
-                onSave={(dueDay, bestPurchaseDay) => updateCreditCardSettings(account, dueDay, bestPurchaseDay)}
+                accountTypes={accountTypes}
+                onCancel={() => setEditingAccountId(null)}
+                onSave={async (patch) => {
+                  await editAccount(account, patch);
+                  setEditingAccountId(null);
+                }}
               />
             ) : null}
           </div>
@@ -202,20 +215,71 @@ function clampDay(value: string, fallback: number) {
   return Number.isInteger(parsed) && parsed >= 1 && parsed <= 31 ? parsed : fallback;
 }
 
-function CreditCardSettings({ account, onSave }: { account: Account; onSave: (dueDay: number, bestPurchaseDay: number) => Promise<void> }) {
+function AccountEditor({ account, accountTypes, onSave, onCancel }: {
+  account: Account;
+  accountTypes: Array<{ label: string; value: Account['type'] }>;
+  onSave: (patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const { colors } = useTheme();
+  const [name, setName] = useState(account.name);
+  const [type, setType] = useState(account.type);
+  const [initialBalance, setInitialBalance] = useState(String(account.initial_balance).replace('.', ','));
   const [dueDay, setDueDay] = useState(String(account.credit_card_due_day ?? 10));
   const [bestPurchaseDay, setBestPurchaseDay] = useState(String(account.credit_card_best_purchase_day ?? 3));
 
   useEffect(() => {
+    setName(account.name);
+    setType(account.type);
+    setInitialBalance(String(account.initial_balance).replace('.', ','));
     setDueDay(String(account.credit_card_due_day ?? 10));
     setBestPurchaseDay(String(account.credit_card_best_purchase_day ?? 3));
-  }, [account.credit_card_best_purchase_day, account.credit_card_due_day]);
+  }, [account]);
+
+  const save = () => {
+    const balance = Number(initialBalance.replace(/\./g, '').replace(',', '.'));
+    if (!name.trim() || !Number.isFinite(balance)) {
+      window.alert('Informe nome e saldo inicial validos.');
+      return;
+    }
+    void onSave({
+      name: name.trim(),
+      type,
+      initial_balance: balance,
+      credit_card_due_day: type === 'credit_card' ? clampDay(dueDay, 10) : null,
+      credit_card_best_purchase_day: type === 'credit_card' ? clampDay(bestPurchaseDay, 3) : null,
+    });
+  };
 
   return (
-    <div className="credit-card-settings">
-      <Field value={dueDay} onChangeText={setDueDay} placeholder="Vencimento" keyboardType="numeric" />
-      <Field value={bestPurchaseDay} onChangeText={setBestPurchaseDay} placeholder="Melhor compra" keyboardType="numeric" />
-      <Button onPress={() => void onSave(clampDay(dueDay, 10), clampDay(bestPurchaseDay, 3))} variant="ghost">Salvar dias</Button>
+    <div className="account-editor" style={{ backgroundColor: colors.subtle }}>
+      <div className="account-editor-fields">
+        <div><Label>Nome</Label><Field value={name} onChangeText={setName} placeholder="Nome da conta" /></div>
+        <div><Label>Saldo inicial</Label><Field value={initialBalance} onChangeText={setInitialBalance} placeholder="0,00" keyboardType="numeric" /></div>
+      </div>
+      <div className="account-type-picker">
+        {accountTypes.map((item) => (
+          <button
+            type="button"
+            key={item.value}
+            className="chip"
+            onClick={() => setType(item.value)}
+            style={{ backgroundColor: type === item.value ? colors.ink : colors.surface, color: type === item.value ? colors.bg : colors.ink, borderColor: colors.line }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      {type === 'credit_card' ? (
+        <div className="account-editor-fields">
+          <div><Label>Dia de vencimento</Label><Field value={dueDay} onChangeText={setDueDay} placeholder="10" keyboardType="numeric" /></div>
+          <div><Label>Melhor dia de compra</Label><Field value={bestPurchaseDay} onChangeText={setBestPurchaseDay} placeholder="3" keyboardType="numeric" /></div>
+        </div>
+      ) : null}
+      <div className="account-editor-actions">
+        <Button onPress={onCancel} variant="ghost">Cancelar</Button>
+        <Button onPress={save}>Salvar alteracoes</Button>
+      </div>
     </div>
   );
 }

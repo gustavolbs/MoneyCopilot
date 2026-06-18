@@ -366,6 +366,26 @@ export async function updateAccountCardSettings(account: Account, dueDay: number
   return updated;
 }
 
+export async function updateAccount(
+  account: Account,
+  patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>,
+) {
+  const nextType = patch.type ?? account.type;
+  const updated: Account = {
+    ...account,
+    ...patch,
+    credit_card_due_day: nextType === 'credit_card' ? patch.credit_card_due_day ?? account.credit_card_due_day ?? 10 : null,
+    credit_card_best_purchase_day: nextType === 'credit_card' ? patch.credit_card_best_purchase_day ?? account.credit_card_best_purchase_day ?? 3 : null,
+    updated_at: now(),
+  };
+  await updateLocalDb((db) => {
+    const index = db.accounts.findIndex((item) => item.id === account.id);
+    if (index >= 0) db.accounts[index] = updated;
+  });
+  await enqueueMutation('accounts', updated.id, 'upsert', updated);
+  return updated;
+}
+
 export async function updateTransactionCategory(transaction: Transaction, categoryId: string, createRule = true) {
   const updated: Transaction = { ...transaction, category_id: categoryId, updated_at: now() };
   await updateLocalDb((db) => {

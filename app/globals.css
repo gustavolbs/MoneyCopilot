@@ -1459,6 +1459,75 @@ button {
   min-height: 42px;
 }
 
+.settings-account-item {
+  border-bottom: 1px solid;
+  padding: 3px 0 8px;
+}
+
+.settings-account-item:last-of-type {
+  border-bottom: 0;
+}
+
+.account-edit-button {
+  border: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.account-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 10px;
+  margin: 2px 0 8px;
+  padding: 14px;
+}
+
+.account-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.account-editor-fields > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.account-editor-fields .field {
+  min-height: 44px;
+  background: var(--mc-surface) !important;
+}
+
+.account-type-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.account-type-picker .chip {
+  padding: 7px 9px;
+  font-size: 10px;
+}
+
+.account-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.account-editor-actions .button {
+  min-height: 42px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
 :root[data-theme="dark"] .modal-panel {
   box-shadow: 0 -18px 70px rgba(0, 0, 0, 0.55);
 }
@@ -2200,7 +2269,8 @@ button {
 
   .editor-field-grid,
   .card-date-grid,
-  .credit-card-settings {
+  .credit-card-settings,
+  .account-editor-fields {
     grid-template-columns: 1fr;
   }
 
