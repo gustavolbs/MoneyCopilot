@@ -17,17 +17,17 @@ const lightColors = {
 };
 
 const darkColors = {
-  bg: '#000813',
-  surface: '#031B32',
-  elevated: '#062846',
-  ink: '#EEF6FF',
-  muted: '#86A0C1',
-  line: '#0E365D',
-  subtle: '#082542',
-  green: '#5FDA57',
-  red: '#FF4D73',
-  gold: '#F5A400',
-  blue: '#5EA7FF',
+  bg: '#0D1117',
+  surface: '#161C2D',
+  elevated: '#1A2035',
+  ink: '#E8EAF0',
+  muted: '#6B7A99',
+  line: 'rgba(255, 255, 255, 0.07)',
+  subtle: '#1E2A42',
+  green: '#22C55E',
+  red: '#EF4444',
+  gold: '#EAB308',
+  blue: '#3B82F6',
 };
 
 export function useTheme() {

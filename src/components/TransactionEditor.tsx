@@ -13,7 +13,7 @@ import { formatMonthYear } from '@/domain/normalize';
 import { Account, Category, PaymentMethod, Transaction, TransactionType } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 
-import { Button, Field, SelectField } from './ui';
+import { Button, ComboboxField, Field } from './ui';
 
 type Props = {
   transaction: Transaction | null;
@@ -138,7 +138,7 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
               {paymentMethod === 'credit_card' ? (
                 <div className="editor-field-label">
                   <Label style={{ color: colors.muted }}>Cartão utilizado</Label>
-                  <SelectField
+                  <ComboboxField
                     className="editor-select"
                     value={cardAccountId ?? ''}
                     onValueChange={(value) => setCardAccountId(value || null)}

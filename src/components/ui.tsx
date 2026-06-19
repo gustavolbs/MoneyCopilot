@@ -1,3 +1,5 @@
+import { Combobox } from '@base-ui/react/combobox';
+import { Check, ChevronDown } from 'lucide-react';
 import { CSSProperties, ReactNode } from 'react';
 
 import { Button as ShadcnButton } from '@/components/ui/button';
@@ -17,7 +19,7 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
       style={{
         backgroundColor: colors.bg,
         backgroundImage: isDark
-          ? 'radial-gradient(circle at 50% 0%, rgba(47, 128, 255, 0.22), transparent 30rem), linear-gradient(180deg, #00101F 0%, #000813 56%, #000611 100%)'
+          ? 'linear-gradient(#0D1117, #0D1117)'
           : 'linear-gradient(180deg, #FFFFFF 0%, #F6F8FC 64%)',
       }}
     >
@@ -33,10 +35,10 @@ export function Card({ children, style }: { children: ReactNode; style?: CSSProp
       className="card"
       style={{
         backgroundColor: colors.surface,
-        backgroundImage: isDark ? 'linear-gradient(180deg, rgba(94, 167, 255, 0.08), rgba(0, 13, 28, 0.08))' : undefined,
+        backgroundImage: isDark ? 'linear-gradient(180deg, rgba(53, 130, 255, 0.025), transparent)' : undefined,
         borderColor: colors.line,
         boxShadow: isDark
-          ? '0 18px 45px rgba(0, 6, 17, 0.46), inset 0 1px 0 rgba(94, 167, 255, 0.08)'
+          ? 'none'
           : '0 12px 26px rgba(19, 36, 58, 0.06)',
         ...style,
       }}
@@ -128,6 +130,79 @@ export function SelectField({ value, onValueChange, options, disabled = false, c
         {options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
       </SelectContent>
     </Select>
+  );
+}
+
+type ComboboxOption = { value: string; label: string };
+
+export function ComboboxField({ value, onValueChange, options, disabled = false, className, placeholder }: {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: ComboboxOption[];
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
+}) {
+  const { colors, isDark } = useTheme();
+  const selected = options.find((option) => option.value === value) ?? null;
+  return (
+    <Combobox.Root
+      items={options}
+      value={selected}
+      onValueChange={(item: ComboboxOption | null) => onValueChange(item?.value ?? '')}
+      disabled={disabled}
+    >
+      <Combobox.InputGroup
+        className={`combobox-field ${className ?? ''}`}
+        style={{ backgroundColor: colors.elevated, border: `1px solid ${colors.line}` }}
+      >
+        <Combobox.Input
+          className="combobox-input"
+          placeholder={placeholder}
+          disabled={disabled}
+          style={{ color: colors.ink }}
+        />
+        <Combobox.Trigger className="combobox-trigger" aria-label="Abrir lista" style={{ color: colors.muted }}>
+          <ChevronDown size={16} />
+        </Combobox.Trigger>
+      </Combobox.InputGroup>
+      <Combobox.Portal>
+        <Combobox.Positioner className="combobox-positioner" sideOffset={6}>
+          <Combobox.Popup
+            className="combobox-popup"
+            style={{
+              backgroundColor: colors.surface,
+              border: `1px solid ${colors.line}`,
+              color: colors.ink,
+              boxShadow: isDark
+                ? '0 18px 44px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06)'
+                : '0 18px 40px rgba(19, 36, 58, 0.16)',
+            }}
+          >
+            <Combobox.Empty className="combobox-empty" style={{ color: colors.muted }}>
+              Nenhuma opção encontrada.
+            </Combobox.Empty>
+            <Combobox.List className="combobox-list">
+              {(item: ComboboxOption) => (
+                <Combobox.Item
+                  key={item.value}
+                  value={item}
+                  className="combobox-item"
+                  style={{ color: colors.ink }}
+                >
+                  <span className="combobox-item-indicator" style={{ color: colors.blue }}>
+                    <Combobox.ItemIndicator>
+                      <Check size={15} />
+                    </Combobox.ItemIndicator>
+                  </span>
+                  <span className="combobox-item-label">{item.label}</span>
+                </Combobox.Item>
+              )}
+            </Combobox.List>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
   );
 }
 

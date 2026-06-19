@@ -52,7 +52,9 @@ function normalize(state: LocalDbState): LocalDbState {
   const defaultsById = new Map(defaultCategories.map((category) => [category.id, category]));
   const categories = state.categories.map((category) => {
     const defaultCategory = defaultsById.get(category.id);
-    return defaultCategory && category.is_default ? { ...category, name: defaultCategory.name } : category;
+    return defaultCategory && category.is_default
+      ? { ...category, name: defaultCategory.name, color: defaultCategory.color, icon: defaultCategory.icon }
+      : category;
   });
   const categoryIds = new Set(categories.map((category) => category.id));
   for (const category of defaultCategories) {

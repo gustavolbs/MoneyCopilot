@@ -27,7 +27,7 @@ export const defaultCategories: Category[] = [
   { id: 'cat_expense_family', household_id: null, name: 'Filhos/Dependentes', type: 'expense', icon: 'users', color: '#84CC16', is_default: true, created_at: now, updated_at: now, deleted_at: null },
   { id: 'cat_expense_taxes', household_id: null, name: 'Impostos/PJ', type: 'expense', icon: 'landmark', color: '#78716C', is_default: true, created_at: now, updated_at: now, deleted_at: null },
   { id: 'cat_expense_investments', household_id: null, name: 'Investimentos', type: 'expense', icon: 'chart-no-axes-combined', color: '#22C55E', is_default: true, created_at: now, updated_at: now, deleted_at: null },
-  { id: 'cat_expense_credit_card', household_id: null, name: 'Cartão de Crédito', type: 'expense', icon: 'credit-card', color: '#111827', is_default: true, created_at: now, updated_at: now, deleted_at: null },
+  { id: 'cat_expense_credit_card', household_id: null, name: 'Cartão de Crédito', type: 'expense', icon: 'credit-card', color: '#4F46E5', is_default: true, created_at: now, updated_at: now, deleted_at: null },
   { id: 'cat_expense_other', household_id: null, name: 'Outros', type: 'expense', icon: 'circle', color: '#9CA3AF', is_default: true, created_at: now, updated_at: now, deleted_at: null },
 ];
 
