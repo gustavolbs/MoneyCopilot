@@ -162,58 +162,60 @@ export function TransactionsView() {
   return (
     <Screen>
       <div className="transactions-page">
-        <TransactionsHeader
-          periodLabel={
-            selectedPeriod.month
-              ? `Competência de ${selectedPeriod.detail}`
-              : "Consulta de todo o histórico"
-          }
-          resultCount={filtered.length}
-        />
+        <div className="transactions-main">
+          <TransactionsHeader
+            periodLabel={
+              selectedPeriod.month
+                ? `Competência de ${selectedPeriod.detail}`
+                : "Consulta de todo o histórico"
+            }
+            resultCount={filtered.length}
+          />
 
-        <TransactionPeriodCards
-          options={periodOptions}
-          value={period}
-          counts={periodCounts}
-          onValueChange={setPeriod}
-        />
+          <TransactionPeriodCards
+            options={periodOptions}
+            value={period}
+            counts={periodCounts}
+            onValueChange={setPeriod}
+          />
 
-        <TransactionFilters
-          query={query}
-          type={type}
-          categoryId={categoryId}
-          payment={payment}
-          categoryOptions={[
-            {
-              value: "all",
-              label:
-                type === "transfer" ? "Não se aplica" : "Todas as categorias",
-            },
-            ...filteredCategories.map((category) => ({
-              value: category.id,
-              label: category.name,
-            })),
-          ]}
-          categoryDisabled={type === "transfer"}
-          paymentDisabled={type === "income" || type === "transfer"}
-          resultCount={filtered.length}
-          hasActiveFilters={hasActiveFilters}
-          onQueryChange={setQuery}
-          onTypeChange={selectType}
-          onCategoryChange={setCategoryId}
-          onPaymentChange={setPayment}
-          onClear={() => {
-            setQuery("");
-            setType("all");
-            setCategoryId("all");
-            setPayment("all");
-          }}
-        />
+          <TransactionFilters
+            query={query}
+            type={type}
+            categoryId={categoryId}
+            payment={payment}
+            categoryOptions={[
+              {
+                value: "all",
+                label:
+                  type === "transfer" ? "Não se aplica" : "Todas as categorias",
+              },
+              ...filteredCategories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              })),
+            ]}
+            categoryDisabled={type === "transfer"}
+            paymentDisabled={type === "income" || type === "transfer"}
+            resultCount={filtered.length}
+            hasActiveFilters={hasActiveFilters}
+            onQueryChange={setQuery}
+            onTypeChange={selectType}
+            onCategoryChange={setCategoryId}
+            onPaymentChange={setPayment}
+            onClear={() => {
+              setQuery("");
+              setType("all");
+              setCategoryId("all");
+              setPayment("all");
+            }}
+          />
 
-        <TransactionSummaryCards
-          income={summary.income}
-          expense={summary.expense}
-        />
+          <TransactionSummaryCards
+            income={summary.income}
+            expense={summary.expense}
+          />
+        </div>
 
         <section className="transaction-list-card" aria-label="Lançamentos">
           {filtered.length ? (
