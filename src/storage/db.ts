@@ -1,7 +1,7 @@
 import { defaultCategories } from '@/domain/categories';
 import { Account, Budget, Category, CategorizationRule, Household, Recurrence, Transaction } from '@/domain/types';
 
-export type MutationQueueItem = {
+type MutationQueueItem = {
   id: string;
   table_name: TableName;
   row_id: string;

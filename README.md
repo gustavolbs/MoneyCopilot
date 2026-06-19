@@ -29,7 +29,6 @@ Configure `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NEXT_PUBLIC_ENABLE_AI=false
 ```
 
 Em produção, defina `NEXT_PUBLIC_SITE_URL` com a URL pública da aplicação. No Supabase, em **Authentication > URL Configuration**, use essa mesma URL em **Site URL** e inclua-a em **Redirect URLs**.

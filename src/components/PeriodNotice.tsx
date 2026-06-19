@@ -10,12 +10,14 @@ export function PeriodNotice({
   const { colors } = useTheme();
 
   return (
-    <div
+    <Alert
       className="period-notice"
+      role="note"
       style={{ backgroundColor: colors.subtle, borderColor: colors.line }}
     >
       <strong style={{ color: colors.ink }}>{label}</strong>
-      <span style={{ color: colors.muted }}>{detail}</span>
-    </div>
+      <AlertDescription style={{ color: colors.muted }}>{detail}</AlertDescription>
+    </Alert>
   );
 }
+import { Alert, AlertDescription } from "@/components/ui/alert";

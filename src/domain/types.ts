@@ -1,15 +1,9 @@
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type CategoryType = 'income' | 'expense' | 'both';
-export type MatchType = 'contains' | 'exact' | 'regex';
-export type AccountType = 'checking' | 'credit_card' | 'cash' | 'reserve' | 'investment' | 'other';
 export type PaymentMethod = 'cash' | 'credit_card';
 
-export type Profile = {
-  id: string;
-  user_id: string;
-  full_name: string | null;
-  created_at: string;
-};
+type CategoryType = 'income' | 'expense' | 'both';
+type MatchType = 'contains' | 'exact' | 'regex';
+type AccountType = 'checking' | 'credit_card' | 'cash' | 'reserve' | 'investment' | 'other';
 
 export type Household = {
   id: string;

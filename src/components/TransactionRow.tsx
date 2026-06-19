@@ -1,4 +1,7 @@
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { transactionEffectiveDate } from "@/domain/finance";
 import { formatCurrency, formatDate } from "@/domain/normalize";
 import { Account, Category, Transaction } from "@/domain/types";
@@ -43,10 +46,11 @@ export function TransactionRow({
       : null;
 
   return (
-    <tr className="transaction-table-row" onClick={onPress}>
-      <td>
-        <button
+    <TableRow className="transaction-table-row" onClick={onPress}>
+      <TableCell>
+        <Button
           type="button"
+          variant="ghost"
           className="transaction-name-button"
           onClick={onPress}
         >
@@ -56,31 +60,31 @@ export function TransactionRow({
           <span className="transaction-date" style={{ color: colors.muted }}>
             {formatDate(transaction.transaction_date)}
           </span>
-        </button>
-      </td>
-      <td>
+        </Button>
+      </TableCell>
+      <TableCell>
         <CategoryBadge
           category={category}
           label={category?.name ?? fallbackLabel}
           compact
         />
-      </td>
-      <td className="transaction-payment-cell">
+      </TableCell>
+      <TableCell className="transaction-payment-cell">
         {transaction.type === "expense" ? (
-          <span className={`payment-badge ${transaction.payment_method === "credit_card" ? "credit-card" : "cash"}`} title={paymentLabel}>
+          <Badge variant="outline" className={`payment-badge ${transaction.payment_method === "credit_card" ? "credit-card" : "cash"}`} title={paymentLabel}>
             <span aria-hidden="true">{transaction.payment_method === "credit_card" ? "💳" : "💵"}</span>
             <span className="payment-badge-label">{paymentLabel}</span>
-          </span>
+          </Badge>
         ) : (
           <span className="payment-empty" style={{ color: colors.muted }}>-</span>
         )}
         {paymentDetail ? (
           <small style={{ color: colors.muted }}>{paymentDetail}</small>
         ) : null}
-      </td>
-      <td className="transaction-amount-cell" style={{ color: amountColor }}>
+      </TableCell>
+      <TableCell className="transaction-amount-cell" style={{ color: amountColor }}>
         {amount}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

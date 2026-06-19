@@ -38,8 +38,8 @@ import { isOnline, listSyncLogs, pullHouseholdsAndMembers, syncNow } from '@/sto
 
 type SyncStatus = 'idle' | 'offline' | 'syncing' | 'error';
 
-export type FamilyMember = { user_id: string; role: string; name: string; isYou: boolean };
-export type FamilyInvite = { id: string; email: string; role: string; created_at: string };
+type FamilyMember = { user_id: string; role: string; name: string; isYou: boolean };
+type FamilyInvite = { id: string; email: string; role: string; created_at: string };
 
 // Aceita convites pendentes do e-mail logado (via funcao no banco) e baixa as households
 // resultantes, para que o usuario entre na Familia correta antes de criar uma nova.

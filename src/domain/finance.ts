@@ -16,7 +16,7 @@ export type DashboardMetrics = {
   largestExpenses: Transaction[];
 };
 
-export const activeTransactions = (transactions: Transaction[]) =>
+const activeTransactions = (transactions: Transaction[]) =>
   transactions.filter((item) => !item.deleted_at);
 
 function lastDayOfMonth(year: number, monthIndex: number) {
@@ -76,7 +76,7 @@ export function transactionBelongsToMonth(
   return transactionMonth(transaction, accounts) === month;
 }
 
-export function isPatrimonialAdjustment(transaction: Transaction, accounts: Account[] = []) {
+function isPatrimonialAdjustment(transaction: Transaction, accounts: Account[] = []) {
   if (transaction.type !== 'income' && transaction.type !== 'expense') return false;
   const account = accounts.find((item) => item.id === transaction.account_id);
   const isPatrimonialAccount = account?.type === 'reserve' || account?.type === 'investment';

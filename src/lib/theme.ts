@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useThemeStore } from '@/store/themeStore';
 
-export const lightColors = {
+const lightColors = {
   bg: '#F6F8FC',
   surface: '#FFFFFF',
   elevated: '#FFFFFF',
@@ -16,7 +16,7 @@ export const lightColors = {
   blue: '#2F80FF',
 };
 
-export const darkColors = {
+const darkColors = {
   bg: '#000813',
   surface: '#031B32',
   elevated: '#062846',
@@ -29,8 +29,6 @@ export const darkColors = {
   gold: '#F5A400',
   blue: '#5EA7FF',
 };
-
-export const colors = lightColors;
 
 export function useTheme() {
   const mode = useThemeStore((state) => state.mode);
@@ -49,12 +47,3 @@ export function useTheme() {
   const palette = isDark ? darkColors : lightColors;
   return { colors: palette, isDark, mode };
 }
-
-export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
-};

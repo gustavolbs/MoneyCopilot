@@ -1,5 +1,12 @@
-import { CSSProperties, FormEvent, ReactNode } from 'react';
+import { CSSProperties, ReactNode } from 'react';
 
+import { Button as ShadcnButton } from '@/components/ui/button';
+import { Card as ShadcnCard } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label as ShadcnLabel } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
 import { useTheme } from '@/lib/theme';
 
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
@@ -22,7 +29,7 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
 export function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   const { colors, isDark } = useTheme();
   return (
-    <section
+    <ShadcnCard
       className="card"
       style={{
         backgroundColor: colors.surface,
@@ -35,7 +42,7 @@ export function Card({ children, style }: { children: ReactNode; style?: CSSProp
       }}
     >
       {children}
-    </section>
+    </ShadcnCard>
   );
 }
 
@@ -46,16 +53,17 @@ export function Title({ children, style }: { children: ReactNode; style?: CSSPro
 
 export function Label({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   const { colors } = useTheme();
-  return <div className="label" style={{ color: colors.muted, ...style }}>{children}</div>;
+  return <ShadcnLabel className="label" style={{ color: colors.muted, ...style }}>{children}</ShadcnLabel>;
 }
 
 export function Button({ children, onPress, variant = 'primary', loading = false }: { children: ReactNode; onPress: () => void; variant?: 'primary' | 'ghost' | 'danger'; loading?: boolean }) {
   const { colors } = useTheme();
   const foreground = variant === 'ghost' ? colors.ink : variant === 'primary' ? colors.bg : '#fff';
   return (
-    <button
+    <ShadcnButton
       type="button"
       onClick={onPress}
+      variant={variant === 'danger' ? 'destructive' : variant === 'ghost' ? 'outline' : 'default'}
       className={`button ${variant}`}
       disabled={loading}
       style={{
@@ -64,8 +72,8 @@ export function Button({ children, onPress, variant = 'primary', loading = false
         color: foreground,
       }}
     >
-      {loading ? <span className="small-spinner" /> : children}
-    </button>
+      {loading ? <Spinner /> : children}
+    </ShadcnButton>
   );
 }
 
@@ -90,15 +98,36 @@ export function Field(props: {
     if (event.key === 'Enter' && !props.multiline && props.onSubmitEditing) props.onSubmitEditing();
   };
 
-  if (props.multiline) return <textarea {...common} rows={4} />;
+  if (props.multiline) return <Textarea {...common} rows={4} />;
 
   return (
-    <input
+    <Input
       {...common}
       type={props.secureTextEntry ? 'password' : props.keyboardType === 'email-address' ? 'email' : props.keyboardType === 'numeric' ? 'text' : 'text'}
       inputMode={props.keyboardType === 'numeric' ? 'decimal' : props.keyboardType === 'email-address' ? 'email' : undefined}
       onKeyDown={submit}
     />
+  );
+}
+
+export function SelectField({ value, onValueChange, options, disabled = false, className, placeholder }: {
+  value: string;
+  onValueChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Select value={value} onValueChange={(nextValue) => onValueChange(nextValue ?? '')} disabled={disabled}>
+      <SelectTrigger className={`field ${className ?? ''}`} style={{ backgroundColor: colors.elevated, borderColor: colors.line, color: colors.ink }}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -113,19 +142,5 @@ export function RowItem({ title, subtitle, right, onPress }: { title: string; su
       {right}
     </>
   );
-  return onPress ? <button type="button" onClick={onPress} className="row-item as-button">{Content}</button> : <div className="row-item">{Content}</div>;
-}
-
-export function InlineForm({ children, onSubmit }: { children: ReactNode; onSubmit: () => void }) {
-  return (
-    <form
-      className="inline-form"
-      onSubmit={(event: FormEvent) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
-      {children}
-    </form>
-  );
+  return onPress ? <ShadcnButton type="button" variant="ghost" onClick={onPress} className="row-item as-button">{Content}</ShadcnButton> : <div className="row-item">{Content}</div>;
 }

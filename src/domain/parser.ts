@@ -8,7 +8,7 @@ const transferWords = ['transferencia', 'transferir', 'guardar', 'mover', 'resga
 
 const amountRegex = /(?:^|\s)([+-]?\s*(?:r\$|rs)?\s*\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|[+-]?\s*(?:r\$|rs)?\s*\d+(?:,\d{1,2})?)(?:\s*(?:reais|real))?(?=\s|$)/i;
 
-export function parseMoney(value: string): number {
+function parseMoney(value: string): number {
   const cleaned = value
     .toLowerCase()
     .replace(/r\$|rs|reais|real|\s/g, '')
@@ -19,7 +19,7 @@ export function parseMoney(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function applyRules(normalized: string, type: TransactionType, rules: CategorizationRule[]) {
+function applyRules(normalized: string, type: TransactionType, rules: CategorizationRule[]) {
   const sorted = rules
     .filter((rule) => !rule.deleted_at)
     .sort((a, b) => b.priority - a.priority);
@@ -39,7 +39,7 @@ export function applyRules(normalized: string, type: TransactionType, rules: Cat
   });
 }
 
-export function suggestCategory(normalized: string, type: TransactionType, categories: Category[], rules: CategorizationRule[]) {
+function suggestCategory(normalized: string, type: TransactionType, categories: Category[], rules: CategorizationRule[]) {
   if (type === 'transfer') {
     return {
       category: categories.find((item) => item.id === 'cat_expense_other') ?? categories[0],

@@ -8,18 +8,13 @@ import { LocalDbState, readLocalDb, TableName, updateLocalDb } from './db';
 
 const now = () => new Date().toISOString();
 
-export async function getAppState(key: string) {
-  const db = await readLocalDb();
-  return db.app_state[key] ?? null;
-}
-
 export async function setAppState(key: string, value: string) {
   await updateLocalDb((db) => {
     db.app_state[key] = value;
   });
 }
 
-export async function enqueueMutation(tableName: TableName, rowId: string, operation: 'upsert' | 'delete', payload: unknown) {
+async function enqueueMutation(tableName: TableName, rowId: string, operation: 'upsert' | 'delete', payload: unknown) {
   await updateLocalDb((db) => {
     db.mutation_queue.push({
       id: createId(),
@@ -251,7 +246,7 @@ export async function reconcileHouseholds(userId: string): Promise<{ household: 
   });
 }
 
-export async function seedDefaultAccounts(householdId: string) {
+async function seedDefaultAccounts(householdId: string) {
   const existing = (await listAccounts(householdId)).length;
   if (existing > 0) return;
   const defaults: Array<Pick<Account, 'name' | 'type'>> = [
@@ -271,7 +266,7 @@ export async function createTransactionsFromInput(params: { input: string; house
   return { parsed, transactions };
 }
 
-export async function saveParsedTransactions(parsed: ParsedTransaction[], householdId: string, userId: string | null) {
+async function saveParsedTransactions(parsed: ParsedTransaction[], householdId: string, userId: string | null) {
   const saved: Transaction[] = [];
   for (const item of parsed) {
     const accountId = item.account_id ?? (await resolveAccountId(householdId, item.account_name_hint, item.type === 'transfer' ? 'checking' : undefined));
@@ -581,7 +576,7 @@ export async function softDeleteTransaction(transaction: Transaction) {
   await enqueueMutation('transactions', transaction.id, 'delete', payload);
 }
 
-export async function createRuleFromCorrection(householdId: string, pattern: string, categoryId: string, type: 'income' | 'expense' | 'transfer') {
+async function createRuleFromCorrection(householdId: string, pattern: string, categoryId: string, type: 'income' | 'expense' | 'transfer') {
   const cleanedPattern = pattern.split(' ')[0] || pattern;
   const createdAt = now();
   const rule: CategorizationRule = {

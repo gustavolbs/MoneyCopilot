@@ -4,12 +4,16 @@ import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { CategoryBadge } from '@/components/CategoryBadge';
+import { Button as ShadcnButton } from '@/components/ui/button';
+import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { transactionMonth } from '@/domain/finance';
 import { formatMonthYear } from '@/domain/normalize';
 import { Account, Category, PaymentMethod, Transaction, TransactionType } from '@/domain/types';
 import { useTheme } from '@/lib/theme';
 
-import { Button, Field } from './ui';
+import { Button, Field, SelectField } from './ui';
 
 type Props = {
   transaction: Transaction | null;
@@ -45,20 +49,6 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
     setCardAccountId(transaction.payment_method === 'credit_card' ? transaction.account_id : accounts.find((account) => account.type === 'credit_card')?.id ?? null);
   }, [accounts, transaction]);
 
-  useEffect(() => {
-    if (!transaction) return;
-    const previousOverflow = document.body.style.overflow;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose, transaction]);
-
   const availableCategories = useMemo(
     () => categories.filter((category) => type === 'transfer' || category.type === type || category.type === 'both'),
     [categories, type],
@@ -85,91 +75,78 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
   const competenceLabel = formatMonthYear(competenceMonth);
 
   return (
-    <div
-      className="modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="transaction-editor-title"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="modal-panel" style={{ backgroundColor: colors.bg }} onMouseDown={(event) => event.stopPropagation()}>
+    <Dialog open={Boolean(transaction)} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="modal-panel" style={{ backgroundColor: colors.bg }} showCloseButton={false}>
         <header className="transaction-editor-header">
           <div>
             <p style={{ color: colors.muted }}>Transação</p>
             <h2 id="transaction-editor-title" style={{ color: colors.ink }}>Editar lançamento</h2>
           </div>
-          <button type="button" onClick={onClose} className="icon-button" style={{ backgroundColor: colors.subtle }} aria-label="Fechar">
+          <DialogClose render={<ShadcnButton type="button" variant="ghost" size="icon" className="icon-button" style={{ backgroundColor: colors.subtle }} aria-label="Fechar" />}>
             <X size={20} color={colors.ink} />
-          </button>
+          </DialogClose>
         </header>
 
         <div className="transaction-editor-content">
           <div className="editor-field-grid">
-            <label className="editor-field-label">
-              <span style={{ color: colors.muted }}>Descrição</span>
+            <div className="editor-field-label">
+              <Label style={{ color: colors.muted }}>Descrição</Label>
               <Field value={description} onChangeText={setDescription} placeholder="Nome da transação" />
-            </label>
-            <label className="editor-field-label">
-              <span style={{ color: colors.muted }}>Valor</span>
+            </div>
+            <div className="editor-field-label">
+              <Label style={{ color: colors.muted }}>Valor</Label>
               <Field value={amount} onChangeText={setAmount} placeholder="0,00" keyboardType="numeric" />
-            </label>
+            </div>
           </div>
 
           <div className="editor-section">
             <span className="editor-section-label" style={{ color: colors.muted }}>Tipo</span>
-            <div className="editor-type-row">
+            <ToggleGroup value={[type]} onValueChange={(values) => setType((values[0] ?? type) as TransactionType)} className="editor-type-row" aria-label="Tipo de transação">
               {typeOptions.map((option) => (
-                <button
-                  type="button"
+                <ToggleGroupItem
                   key={option.value}
-                  onClick={() => setType(option.value)}
+                  value={option.value}
                   className="editor-type-button"
                   style={{ backgroundColor: type === option.value ? colors.blue : colors.subtle, color: type === option.value ? '#00111F' : colors.ink }}
                 >
                   {option.label}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
           </div>
 
           {type === 'expense' ? (
             <div className="editor-section">
               <span className="editor-section-label" style={{ color: colors.muted }}>Pagamento</span>
-              <div className="editor-payment-row">
-                <button
-                  type="button"
+              <ToggleGroup value={[paymentMethod]} onValueChange={(values) => setPaymentMethod((values[0] ?? paymentMethod) as PaymentMethod)} className="editor-payment-row" aria-label="Forma de pagamento">
+                <ToggleGroupItem
+                  value="cash"
                   className="editor-payment-button"
-                  onClick={() => setPaymentMethod('cash')}
                   style={{ backgroundColor: paymentMethod === 'cash' ? colors.blue : colors.subtle, color: paymentMethod === 'cash' ? '#00111F' : colors.ink }}
                 >
                   À vista
-                </button>
-                <button
-                  type="button"
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  value="credit_card"
                   className="editor-payment-button"
-                  onClick={() => setPaymentMethod('credit_card')}
                   disabled={!creditCards.length}
                   style={{ backgroundColor: paymentMethod === 'credit_card' ? colors.blue : colors.subtle, color: paymentMethod === 'credit_card' ? '#00111F' : colors.ink }}
                 >
                   Cartão
-                </button>
-              </div>
+                </ToggleGroupItem>
+              </ToggleGroup>
               {paymentMethod === 'credit_card' ? (
-                <label className="editor-field-label">
-                  <span style={{ color: colors.muted }}>Cartão utilizado</span>
-                  <select
+                <div className="editor-field-label">
+                  <Label style={{ color: colors.muted }}>Cartão utilizado</Label>
+                  <SelectField
                     className="editor-select"
                     value={cardAccountId ?? ''}
-                    onChange={(event) => setCardAccountId(event.currentTarget.value || null)}
-                    style={{ borderColor: colors.line, backgroundColor: colors.elevated, color: colors.ink }}
-                  >
-                    <option value="">Selecione um cartão</option>
-                    {creditCards.map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}
-                  </select>
+                    onValueChange={(value) => setCardAccountId(value || null)}
+                    placeholder="Selecione um cartão"
+                    options={creditCards.map((card) => ({ value: card.id, label: card.name }))}
+                  />
                   {selectedCard ? <small style={{ color: colors.muted }}>Vence dia {selectedCard.credit_card_due_day ?? '-'} · melhor compra dia {selectedCard.credit_card_best_purchase_day ?? '-'}</small> : null}
-                </label>
+                </div>
               ) : null}
               <p className="editor-competence" style={{ color: colors.muted }}>Competência: <strong style={{ color: colors.ink }}>{competenceLabel}</strong></p>
             </div>
@@ -210,7 +187,7 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
             Salvar
           </Button>
         </footer>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

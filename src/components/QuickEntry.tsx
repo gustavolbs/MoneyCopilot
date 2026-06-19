@@ -2,6 +2,7 @@ import { SendHorizonal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { CategoryBadge } from '@/components/CategoryBadge';
+import { InputGroup, InputGroupButton, InputGroupTextarea } from '@/components/ui/input-group';
 import { formatCurrency } from '@/domain/normalize';
 import { parseTransactionInput } from '@/domain/parser';
 import { useTheme } from '@/lib/theme';
@@ -21,8 +22,8 @@ export function QuickEntry() {
 
   return (
     <div className="quick-entry">
-      <div className="quick-input-row" style={{ backgroundColor: colors.surface, borderColor: colors.line }}>
-        <textarea
+      <InputGroup className="quick-input-row" style={{ backgroundColor: colors.surface, borderColor: colors.line }}>
+        <InputGroupTextarea
           value={value}
           onChange={(event) => setValue(event.currentTarget.value)}
           placeholder="Adicionar lançamento..."
@@ -33,16 +34,16 @@ export function QuickEntry() {
             if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') void submit();
           }}
         />
-        <button
-          type="button"
+        <InputGroupButton
+          size="icon-sm"
           onClick={() => void submit()}
           className="icon-button send"
           style={{ backgroundColor: isDark ? colors.blue : colors.ink }}
           aria-label="Enviar lançamento"
         >
           <SendHorizonal color={isDark ? '#00111F' : colors.bg} size={20} />
-        </button>
-      </div>
+        </InputGroupButton>
+      </InputGroup>
       {preview.length > 0 ? (
         <div className="preview" style={{ backgroundColor: colors.surface, borderColor: colors.line }}>
           {preview.slice(0, 4).map((item) => (

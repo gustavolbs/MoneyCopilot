@@ -1,5 +1,6 @@
 import { CircleAlert, Cloud, CloudOff, RefreshCcw } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
 
@@ -13,9 +14,9 @@ export function SyncPill() {
   const tone = offline || failed ? colors.red : syncing ? colors.blue : colors.green;
 
   return (
-    <button type="button" onClick={() => void sync()} className="sync-pill" disabled={syncing} aria-live="polite" style={{ backgroundColor: `${tone}1F` }}>
+    <Button type="button" variant="ghost" onClick={() => void sync()} className="sync-pill" disabled={syncing} aria-live="polite" style={{ backgroundColor: `${tone}1F` }}>
       <Icon className={syncing ? 'sync-pill-spinner' : undefined} size={14} color={tone} />
       <span style={{ color: colors.ink }}>{offline ? 'Offline' : failed ? 'Erro ao sincronizar' : syncing ? 'Sincronizando...' : `${pendingMutations} pendente(s)`}</span>
-    </button>
+    </Button>
   );
 }

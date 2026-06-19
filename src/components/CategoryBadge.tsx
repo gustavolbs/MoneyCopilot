@@ -1,5 +1,6 @@
 import { CSSProperties } from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Category } from '@/domain/types';
 
 const iconEmoji: Record<string, string> = {
@@ -63,15 +64,15 @@ export function CategoryBadge({
 
   if (onClick) {
     return (
-      <button type="button" className={className} style={style} onClick={onClick} title={name}>
+      <Badge variant="outline" render={<button type="button" />} className={className} style={style} onClick={onClick} title={name}>
         {content}
-      </button>
+      </Badge>
     );
   }
 
   return (
-    <span className={className} style={style} title={name}>
+    <Badge variant="outline" className={className} style={style} title={name}>
       {content}
-    </span>
+    </Badge>
   );
 }

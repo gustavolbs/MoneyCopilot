@@ -15,6 +15,8 @@ import { categoryEmoji } from "./CategoryBadge";
 import { InsightTooltip } from "./InsightTooltip";
 import { SyncPill } from "./SyncPill";
 import { TransactionRow } from "./TransactionRow";
+import { Table, TableBody } from "./ui/table";
+import { Toggle } from "./ui/toggle";
 
 const compactCurrency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -69,15 +71,15 @@ export function DesktopDashboard() {
         </div>
         <div className="desktop-header-actions">
           <SyncPill />
-          <button
-            type="button"
+          <Toggle
+            pressed={isDark}
+            onPressedChange={() => toggleDarkMode(colors.bg)}
             className="icon-button"
             aria-label={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
-            onClick={() => toggleDarkMode(colors.bg)}
             style={{ borderColor: colors.line, backgroundColor: colors.surface }}
           >
             {isDark ? <Sun size={18} color={colors.ink} /> : <Moon size={18} color={colors.ink} />}
-          </button>
+          </Toggle>
         </div>
       </header>
 
@@ -116,8 +118,8 @@ export function DesktopDashboard() {
         <DashboardCard className="desktop-transactions-card" title="Transações recentes" action={`${activeTransactions.length} lançamentos`}>
           {activeTransactions.length ? (
             <div className="transaction-table-wrap compact">
-              <table className="transaction-table">
-                <tbody>
+              <Table className="transaction-table">
+                <TableBody>
                   {activeTransactions.slice(0, 7).map((transaction) => (
                     <TransactionRow
                       key={transaction.id}
@@ -126,8 +128,8 @@ export function DesktopDashboard() {
                       accounts={accounts}
                     />
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           ) : <EmptyState text="Nenhuma transação registrada." />}
         </DashboardCard>
@@ -168,13 +170,13 @@ export function DesktopDashboard() {
         <DashboardCard className="desktop-insights-card" title="Insights" action="Análise automática">
           <div className="desktop-insight-list">
             {insights.slice(0, 4).map((insight) => {
-              const tooltipId = `desktop-insight-tooltip-${insight.id}`;
               return (
-                <div className={`desktop-insight ${insight.tone} insight-tooltip-anchor`} key={insight.id} tabIndex={0} aria-describedby={tooltipId}>
-                  <span><Lightbulb size={16} /></span>
-                  <div><strong>{insight.title}</strong><p>{insight.body}</p></div>
-                  <InsightTooltip id={tooltipId} insight={insight} />
-                </div>
+                <InsightTooltip key={insight.id} insight={insight}>
+                  <div className={`desktop-insight ${insight.tone}`}>
+                    <span><Lightbulb size={16} /></span>
+                    <div><strong>{insight.title}</strong><p>{insight.body}</p></div>
+                  </div>
+                </InsightTooltip>
               );
             })}
             {!insights.length ? (
