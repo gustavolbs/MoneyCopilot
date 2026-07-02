@@ -128,73 +128,81 @@ export function FamilySettingsModal({
       <section className="settings-family-grid" aria-label="Membros da família">
         {familyMembers.map((member) => (
           <article className="settings-family-member-card" key={member.user_id}>
-            <span
-              className="settings-family-member-avatar"
-              style={{
-                backgroundColor: member.isYou ? colors.blue : colors.subtle,
-                color: member.isYou ? "#00111F" : colors.ink,
-              }}
-            >
-              {member.name.trim().charAt(0).toUpperCase() || "?"}
-            </span>
-            <div>
-              <strong>{member.isYou ? `${member.name} (você)` : member.name}</strong>
-              <small>
-                {member.role === "owner" ? "Responsável" : "Membro da família"}
-              </small>
+            <div className="settings-family-member-main">
+              <span
+                className="settings-family-member-avatar"
+                style={{
+                  backgroundColor: member.isYou ? colors.blue : colors.subtle,
+                  color: member.isYou ? "#00111F" : colors.ink,
+                }}
+              >
+                {member.name.trim().charAt(0).toUpperCase() || "?"}
+              </span>
+              <div className="settings-family-member-copy">
+                <strong>{member.isYou ? `${member.name} (você)` : member.name}</strong>
+                <small>
+                  {member.role === "owner" ? "Responsável" : "Membro da família"}
+                </small>
+              </div>
             </div>
-            <span
-              className="settings-family-role-pill"
-              style={{
-                backgroundColor:
-                  member.role === "owner" ? `${colors.gold}18` : colors.subtle,
-                color: member.role === "owner" ? colors.gold : colors.muted,
-              }}
-            >
-              <Shield size={12} />
-              {member.role === "owner" ? "Owner" : "Membro"}
-            </span>
-            {isOwner && !member.isYou ? (
-              <SettingsConfirmAction
-                title={`Remover ${member.name}?`}
-                description="A pessoa perderá o acesso aos dados compartilhados desta família."
-                onConfirm={() => onRemoveMember(member.user_id)}
-                trigger={
-                  <ShadcnButton
-                    type="button"
-                    variant="ghost"
-                    className="settings-row-danger settings-family-remove"
-                    style={{
-                      backgroundColor: `${colors.red}12`,
-                      color: colors.red,
-                    }}
-                  >
-                    <UserMinus size={14} /> Remover
-                  </ShadcnButton>
-                }
-              />
-            ) : null}
+            <div className="settings-family-member-meta">
+              <span
+                className="settings-family-role-pill"
+                style={{
+                  backgroundColor:
+                    member.role === "owner" ? `${colors.gold}18` : colors.subtle,
+                  color: member.role === "owner" ? colors.gold : colors.muted,
+                }}
+              >
+                <Shield size={12} />
+                {member.role === "owner" ? "Owner" : "Membro"}
+              </span>
+              {isOwner && !member.isYou ? (
+                <SettingsConfirmAction
+                  title={`Remover ${member.name}?`}
+                  description="A pessoa perderá o acesso aos dados compartilhados desta família."
+                  onConfirm={() => onRemoveMember(member.user_id)}
+                  trigger={
+                    <ShadcnButton
+                      type="button"
+                      variant="ghost"
+                      className="settings-row-danger settings-family-remove"
+                      style={{
+                        backgroundColor: `${colors.red}12`,
+                        color: colors.red,
+                      }}
+                    >
+                      <UserMinus size={14} /> Remover
+                    </ShadcnButton>
+                  }
+                />
+              ) : null}
+            </div>
           </article>
         ))}
 
         {familyInvites.map((invite) => (
           <article className="settings-family-member-card is-pending" key={invite.id}>
-            <span
-              className="settings-family-member-avatar"
-              style={{ backgroundColor: `${colors.gold}18`, color: colors.gold }}
-            >
-              <Mail size={15} />
-            </span>
-            <div>
-              <strong>{invite.email}</strong>
-              <small>Convite pendente</small>
+            <div className="settings-family-member-main">
+              <span
+                className="settings-family-member-avatar"
+                style={{ backgroundColor: `${colors.gold}18`, color: colors.gold }}
+              >
+                <Mail size={15} />
+              </span>
+              <div className="settings-family-member-copy">
+                <strong>{invite.email}</strong>
+                <small>Convite pendente</small>
+              </div>
             </div>
-            <span
-              className="settings-family-role-pill"
-              style={{ backgroundColor: `${colors.gold}18`, color: colors.gold }}
-            >
-              Aguardando
-            </span>
+            <div className="settings-family-member-meta">
+              <span
+                className="settings-family-role-pill"
+                style={{ backgroundColor: `${colors.gold}18`, color: colors.gold }}
+              >
+                Aguardando
+              </span>
+            </div>
           </article>
         ))}
       </section>

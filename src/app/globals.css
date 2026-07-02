@@ -4782,16 +4782,36 @@ button {
 .settings-family-member-card {
   position: relative;
   min-width: 0;
-  gap: 11px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
   border: 1px solid color-mix(in srgb, var(--mc-line) 76%, transparent);
   border-radius: 16px;
   background: var(--mc-surface);
   padding: 12px;
 }
 
-.settings-family-member-card > div {
+.settings-family-member-main,
+.settings-family-member-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settings-family-member-main {
+  gap: 11px;
+}
+
+.settings-family-member-copy {
   min-width: 0;
   flex: 1;
+}
+
+.settings-family-member-meta {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
 }
 
 .settings-family-member-avatar {
@@ -9752,9 +9772,9 @@ button {
 
   .settings-family-manager-modal .settings-family-grid {
     grid-column: 2;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-content: start;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
   }
 
@@ -10109,7 +10129,7 @@ button {
   .settings-family-manager-modal .settings-family-grid {
     grid-column: 2;
     grid-row: 1 / span 2;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .settings-account-list {
@@ -10413,9 +10433,9 @@ button {
   }
 
   .settings-family-member-card {
-    display: grid;
-    grid-template-columns: 34px minmax(0, 1fr) auto;
-    gap: 9px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
   }
 
   .settings-family-member-avatar {
@@ -10430,8 +10450,12 @@ button {
   }
 
   .settings-family-remove {
-    grid-column: 2 / -1;
     justify-self: start;
+  }
+
+  .settings-family-member-meta {
+    justify-content: flex-start;
+    padding-left: 43px;
   }
 
   .settings-family-invite-card,
