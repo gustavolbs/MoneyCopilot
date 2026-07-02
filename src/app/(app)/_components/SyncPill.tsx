@@ -30,7 +30,7 @@ export function SyncPill() {
       onClick={() => void sync()}
       disabled={syncing}
       aria-live="polite"
-      className="flex items-center gap-2 rounded-lg border border-[var(--mc-line)] bg-[var(--mc-surface)] px-3 py-2 text-[var(--mc-muted)] transition-colors hover:bg-[var(--mc-subtle)] disabled:opacity-70"
+      className="sync-pill flex items-center gap-2 rounded-lg border border-[var(--mc-line)] bg-[var(--mc-surface)] px-3 py-2 text-[var(--mc-muted)] transition-colors hover:bg-[var(--mc-subtle)] disabled:opacity-70"
     >
       <Icon size={14} className={syncing ? "animate-spin" : undefined} />
       <span className="text-[10px]">{label}</span>

@@ -1,17 +1,16 @@
 'use client';
 
-import { X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { CalendarDays, CreditCard, ReceiptText, Tag, Trash2, Wallet, X } from 'lucide-react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { CategoryBadge } from '@/components/CategoryBadge';
 import { Button as ShadcnButton } from '@/components/ui/button';
-import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { transactionMonth } from '@/domain/finance';
 import { formatMonthYear } from '@/domain/normalize';
 import { Account, Category, PaymentMethod, Transaction, TransactionType } from '@/domain/types';
-import { useTheme } from '@/lib/theme';
 
 import { Button, ComboboxField, Field } from './ui';
 
@@ -30,8 +29,18 @@ const typeOptions: Array<{ label: string; value: TransactionType }> = [
   { label: 'Transferência', value: 'transfer' },
 ];
 
+const typeTone: Record<TransactionType, string> = {
+  expense: 'danger',
+  income: 'success',
+  transfer: 'info',
+};
+
+const paymentOptions: Array<{ label: string; value: PaymentMethod; icon: typeof Wallet }> = [
+  { label: 'À vista', value: 'cash', icon: Wallet },
+  { label: 'Cartão', value: 'credit_card', icon: CreditCard },
+];
+
 export function TransactionEditor({ transaction, categories, accounts, onClose, onSave, onDelete }: Props) {
-  const { colors } = useTheme();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
@@ -76,85 +85,86 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
 
   return (
     <Dialog open={Boolean(transaction)} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="modal-panel" style={{ backgroundColor: colors.bg }} showCloseButton={false}>
+      <DialogContent className="modal-panel transaction-editor-modal" showCloseButton={false}>
         <header className="transaction-editor-header">
-          <div>
-            <p style={{ color: colors.muted }}>Transação</p>
-            <h2 id="transaction-editor-title" style={{ color: colors.ink }}>Editar lançamento</h2>
+          <div className="transaction-editor-title-group">
+            <span className="transaction-editor-kicker">Transação</span>
+            <DialogTitle id="transaction-editor-title">Editar lançamento</DialogTitle>
+            <p>Ajuste os dados do lançamento sem sair da tela de transações.</p>
           </div>
-          <DialogClose render={<ShadcnButton type="button" variant="ghost" size="icon" className="icon-button" style={{ backgroundColor: colors.subtle }} aria-label="Fechar" />}>
-            <X size={20} color={colors.ink} />
+          <DialogClose render={<ShadcnButton type="button" variant="ghost" size="icon" className="transaction-editor-close" aria-label="Fechar" />}>
+            <X size={18} />
           </DialogClose>
         </header>
 
         <div className="transaction-editor-content">
-          <div className="editor-field-grid">
+          <section className="transaction-editor-section transaction-editor-main-section">
             <div className="editor-field-label">
-              <Label style={{ color: colors.muted }}>Descrição</Label>
+              <Label>Descrição</Label>
               <Field value={description} onChangeText={setDescription} placeholder="Nome da transação" />
             </div>
             <div className="editor-field-label">
-              <Label style={{ color: colors.muted }}>Valor</Label>
+              <Label>Valor</Label>
               <Field value={amount} onChangeText={setAmount} placeholder="0,00" keyboardType="numeric" />
             </div>
-          </div>
+          </section>
 
-          <div className="editor-section">
-            <span className="editor-section-label" style={{ color: colors.muted }}>Tipo</span>
-            <ToggleGroup value={[type]} onValueChange={(values) => setType((values[0] ?? type) as TransactionType)} className="editor-type-row" aria-label="Tipo de transação">
-              {typeOptions.map((option) => (
-                <ToggleGroupItem
-                  key={option.value}
-                  value={option.value}
-                  className="editor-type-button"
-                  style={{ backgroundColor: type === option.value ? colors.blue : colors.subtle, color: type === option.value ? '#00111F' : colors.ink }}
-                >
-                  {option.label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
-
-          {type === 'expense' ? (
-            <div className="editor-section">
-              <span className="editor-section-label" style={{ color: colors.muted }}>Pagamento</span>
-              <ToggleGroup value={[paymentMethod]} onValueChange={(values) => setPaymentMethod((values[0] ?? paymentMethod) as PaymentMethod)} className="editor-payment-row" aria-label="Forma de pagamento">
-                <ToggleGroupItem
-                  value="cash"
-                  className="editor-payment-button"
-                  style={{ backgroundColor: paymentMethod === 'cash' ? colors.blue : colors.subtle, color: paymentMethod === 'cash' ? '#00111F' : colors.ink }}
-                >
-                  À vista
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="credit_card"
-                  className="editor-payment-button"
-                  disabled={!creditCards.length}
-                  style={{ backgroundColor: paymentMethod === 'credit_card' ? colors.blue : colors.subtle, color: paymentMethod === 'credit_card' ? '#00111F' : colors.ink }}
-                >
-                  Cartão
-                </ToggleGroupItem>
+          <div className="transaction-editor-options-grid">
+            <EditorSection icon={<ReceiptText size={16} />} title="Tipo">
+              <ToggleGroup value={[type]} onValueChange={(values) => setType((values[0] ?? type) as TransactionType)} className="editor-type-row" aria-label="Tipo de transação">
+                {typeOptions.map((option) => (
+                  <ToggleGroupItem
+                    key={option.value}
+                    value={option.value}
+                    className="editor-type-button"
+                    data-selected={type === option.value}
+                    data-tone={typeTone[option.value]}
+                  >
+                    {option.label}
+                  </ToggleGroupItem>
+                ))}
               </ToggleGroup>
-              {paymentMethod === 'credit_card' ? (
-                <div className="editor-field-label">
-                  <Label style={{ color: colors.muted }}>Cartão utilizado</Label>
-                  <ComboboxField
-                    className="editor-select"
-                    value={cardAccountId ?? ''}
-                    onValueChange={(value) => setCardAccountId(value || null)}
-                    placeholder="Selecione um cartão"
-                    options={creditCards.map((card) => ({ value: card.id, label: card.name }))}
-                  />
-                  {selectedCard ? <small style={{ color: colors.muted }}>Vence dia {selectedCard.credit_card_due_day ?? '-'} · melhor compra dia {selectedCard.credit_card_best_purchase_day ?? '-'}</small> : null}
-                </div>
-              ) : null}
-              <p className="editor-competence" style={{ color: colors.muted }}>Competência: <strong style={{ color: colors.ink }}>{competenceLabel}</strong></p>
-            </div>
-          ) : null}
+            </EditorSection>
+
+            {type === 'expense' ? (
+              <EditorSection icon={<CreditCard size={16} />} title="Pagamento">
+                <ToggleGroup value={[paymentMethod]} onValueChange={(values) => setPaymentMethod((values[0] ?? paymentMethod) as PaymentMethod)} className="editor-payment-row" aria-label="Forma de pagamento">
+                  {paymentOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <ToggleGroupItem
+                        key={option.value}
+                        value={option.value}
+                        className="editor-payment-button"
+                        data-selected={paymentMethod === option.value}
+                        disabled={option.value === 'credit_card' && !creditCards.length}
+                      >
+                        <Icon size={15} />
+                        {option.label}
+                      </ToggleGroupItem>
+                    );
+                  })}
+                </ToggleGroup>
+                {paymentMethod === 'credit_card' ? (
+                  <div className="editor-field-label">
+                    <Label>Cartão utilizado</Label>
+                    <ComboboxField
+                      className="editor-select"
+                      value={cardAccountId ?? ''}
+                      onValueChange={(value) => setCardAccountId(value || null)}
+                      placeholder="Selecione um cartão"
+                      options={creditCards.map((card) => ({ value: card.id, label: card.name }))}
+                    />
+                    {selectedCard ? <small>Vence dia {selectedCard.credit_card_due_day ?? '-'} · melhor compra dia {selectedCard.credit_card_best_purchase_day ?? '-'}</small> : null}
+                  </div>
+                ) : null}
+                <p className="editor-competence"><CalendarDays size={14} /> Competência: <strong>{competenceLabel}</strong></p>
+              </EditorSection>
+            ) : null}
+          </div>
 
           {type !== 'transfer' ? (
-            <div className="editor-section">
-              <span className="editor-section-label" style={{ color: colors.muted }}>Categoria</span>
+            <EditorSection icon={<Tag size={16} />} title="Categoria">
               <div className="editor-category-list" aria-label="Categorias">
                 {availableCategories.map((category) => (
                   <CategoryBadge
@@ -165,12 +175,14 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
                   />
                 ))}
               </div>
-            </div>
+            </EditorSection>
           ) : null}
         </div>
 
-        <footer className="modal-footer" style={{ borderColor: colors.line }}>
-          <Button onPress={() => void onDelete()} variant="danger">Excluir</Button>
+        <footer className="modal-footer transaction-editor-footer">
+          <Button onPress={() => void onDelete()} variant="danger">
+            <span className="transaction-editor-delete-label"><Trash2 size={15} /> Excluir</span>
+          </Button>
           <Button
             onPress={() => {
               if (!canSave) return;
@@ -189,5 +201,17 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
         </footer>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EditorSection({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <section className="transaction-editor-section">
+      <div className="editor-section-heading">
+        <span className="editor-section-icon">{icon}</span>
+        <span className="editor-section-label">{title}</span>
+      </div>
+      {children}
+    </section>
   );
 }

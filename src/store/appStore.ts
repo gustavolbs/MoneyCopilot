@@ -88,7 +88,7 @@ type AppState = {
   changeTransactionCategory: (transaction: Transaction, categoryId: string) => Promise<void>;
   deleteTransaction: (transaction: Transaction) => Promise<void>;
   editTransaction: (transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'payment_method' | 'notes'>>) => Promise<void>;
-  saveBudget: (categoryId: string, amount: number) => Promise<void>;
+  saveBudget: (categoryId: string, amount: number, month?: string) => Promise<void>;
   addRecurrence: (transaction: Transaction) => Promise<void>;
   sync: () => Promise<SyncStatus>;
   resetCache: () => Promise<void>;
@@ -289,10 +289,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     void get().sync();
   },
 
-  saveBudget: async (categoryId, amount) => {
+  saveBudget: async (categoryId, amount, month = monthKey()) => {
     const household = get().household;
     if (!household) return;
-    await upsertBudget(household.id, categoryId, monthKey(), amount);
+    await upsertBudget(household.id, categoryId, month, amount);
     await get().refresh();
     void get().sync();
   },

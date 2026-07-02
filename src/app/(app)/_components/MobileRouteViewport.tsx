@@ -20,6 +20,8 @@ const ignoredSwipeTargets = [
   "[role='button']",
   "[data-swipe-ignore]",
   ".transaction-period-grid",
+  ".budget-hero-grid",
+  ".budget-card-grid",
   ".mobile-budget-scroll",
   ".mobile-patrimonio-scroll",
   ".recharts-wrapper",

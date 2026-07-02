@@ -125,10 +125,7 @@ export function DesktopDashboard() {
           <PrincipaisCategorias
             className="desktop-categories-card mobile-dashboard-section"
             categories={current.byCategory}
-            allCategories={categories}
             budgets={budgets}
-            transactions={transactions}
-            accounts={accounts}
             month={monthKey()}
           />
 

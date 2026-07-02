@@ -11,11 +11,23 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useTheme } from '@/lib/theme';
 
-export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
+export function Screen({
+  children,
+  className,
+  scroll = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  scroll?: boolean;
+}) {
   const { colors, isDark } = useTheme();
+  const screenClassName = ["screen", scroll ? "scroll" : "", className]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <main
-      className={`screen${scroll ? ' scroll' : ''}`}
+      className={screenClassName}
       style={{
         backgroundColor: colors.bg,
         backgroundImage: isDark
@@ -121,10 +133,11 @@ export function SelectField({ value, onValueChange, options, disabled = false, c
   placeholder?: string;
 }) {
   const { colors } = useTheme();
+  const selectedLabel = options.find((option) => option.value === value)?.label;
   return (
     <Select value={value} onValueChange={(nextValue) => onValueChange(nextValue ?? '')} disabled={disabled}>
       <SelectTrigger className={`field ${className ?? ''}`} style={{ backgroundColor: colors.elevated, borderColor: colors.line, color: colors.ink }}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}

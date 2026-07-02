@@ -2,6 +2,7 @@ import {
   BarChart3,
   Home,
   Lightbulb,
+  type LucideIcon,
   PiggyBank,
   Settings,
   WalletCards,
@@ -12,7 +13,7 @@ export type AppNavigationItem = {
   href: Route;
   label: string;
   mobileLabel: string;
-  icon: React.ComponentType<{ size?: number; color?: string }>;
+  icon: LucideIcon;
 };
 
 export const appNavigation: AppNavigationItem[] = [

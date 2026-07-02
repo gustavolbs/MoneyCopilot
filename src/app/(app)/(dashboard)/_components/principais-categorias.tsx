@@ -1,13 +1,12 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 import { categoryEmoji } from "@/components/CategoryBadge";
-import { budgetProgress } from "@/domain/finance";
 import { formatCurrency } from "@/domain/normalize";
-import type { Account, Budget, Category, Transaction } from "@/domain/types";
+import type { Budget, Category } from "@/domain/types";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
 interface CategoriaItem {
   category: Category;
@@ -17,51 +16,26 @@ interface CategoriaItem {
 
 interface PrincipaisCategoriasProps {
   categories: CategoriaItem[];
-  allCategories: Category[];
   budgets: Budget[];
-  transactions: Transaction[];
-  accounts: Account[];
   month: string;
   limit?: number;
   className?: string;
 }
 
-const budgetStatusColor: Record<string, string> = {
-  ok: "#22c55e",
-  warning: "#f59e0b",
-  over: "#ef4444",
-} as const;
-
 export function PrincipaisCategorias({
   categories,
-  allCategories,
   budgets,
-  transactions,
-  accounts,
   month,
   limit = 6,
   className,
 }: PrincipaisCategoriasProps) {
   const items = categories.slice(0, limit);
   const maxAmount = Math.max(...categories.map((item) => item.amount), 1);
-  const mobileItems = budgets
-    .filter((budget) => budget.month === month && !budget.deleted_at)
-    .map((budget) => ({
-      budget,
-      category: allCategories.find(
-        (category) => category.id === budget.category_id,
-      ),
-      progress: budgetProgress(transactions, budget, accounts),
-    }))
-    .filter(
-      (
-        item,
-      ): item is typeof item & {
-        category: Category;
-      } => Boolean(item.category),
-    )
-    .sort((a, b) => b.progress.percent - a.progress.percent)
-    .slice(0, limit);
+  const budgetsByCategory = new Map(
+    budgets
+      .filter((budget) => budget.month === month && !budget.deleted_at)
+      .map((budget) => [budget.category_id, budget]),
+  );
 
   return (
     <div
@@ -86,58 +60,60 @@ export function PrincipaisCategorias({
       </div>
 
       <div className="mobile-category-budgets">
-        {mobileItems.length ? (
+        {items.length ? (
           <div className="mobile-budget-scroll">
-            {mobileItems.map(({ budget, category, progress }) => {
-              const difference = budget.amount - progress.spent;
-              const progressPercent = Math.min(
-                Math.max(progress.percent * 100, 0),
-                100,
-              );
-              const stateLabel =
-                difference < 0
-                  ? "excedeu"
-                  : difference === 0
-                    ? "no limite"
-                    : "restam";
+            {items.map((item) => {
+              const budget = budgetsByCategory.get(item.category.id);
+              const budgetPercent = budget
+                ? Math.min(Math.max((item.amount / budget.amount) * 100, 0), 100)
+                : Math.min(Math.max(item.percent * 100, 0), 100);
+              const budgetBalance = budget ? budget.amount - item.amount : null;
+              const budgetLabel = budget
+                ? budgetBalance !== null && budgetBalance < 0
+                  ? `${formatCurrency(Math.abs(budgetBalance))} acima`
+                  : `${formatCurrency(budgetBalance ?? 0)} livre`
+                : `${Math.round(item.percent * 100)}% do mês`;
+              const ariaLabel = budget
+                ? `${item.category.name}: ${formatCurrency(item.amount)} gastos de ${formatCurrency(budget.amount)} orçados`
+                : `${item.category.name}: ${Math.round(item.percent * 100)}% das despesas do mês`;
 
               return (
                 <div
-                  key={budget.id}
-                  className="mobile-budget-item"
-                  title={category.name}
+                  key={item.category.id}
+                  className={cn(
+                    "mobile-budget-item",
+                    budgetBalance !== null && budgetBalance < 0 && "is-over-budget",
+                  )}
+                  title={item.category.name}
                 >
                   <div
                     className="mobile-budget-ring"
                     role="progressbar"
-                    aria-label={`${category.name}: ${Math.round(progress.percent * 100)}% do orçamento utilizado`}
+                    aria-label={ariaLabel}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    aria-valuenow={Math.round(progressPercent)}
+                    aria-valuenow={Math.round(budgetPercent)}
                     style={
                       {
-                        "--budget-progress": `${progressPercent}%`,
-                        "--budget-color": budgetStatusColor[progress.status],
+                        "--budget-progress": `${budgetPercent}%`,
+                        "--budget-color": item.category.color,
                       } as React.CSSProperties
                     }
                   >
-                    <span aria-hidden>{categoryEmoji(category)}</span>
+                    <span aria-hidden>{categoryEmoji(item.category)}</span>
                   </div>
-                  <strong>{formatCurrency(Math.abs(difference))}</strong>
-                  <small
-                    className={cn(
-                      progress.status === "over" && "is-over-budget",
-                    )}
-                  >
-                    {stateLabel}
+                  <strong>{formatCurrency(item.amount)}</strong>
+                  <small>
+                    {budget ? `de ${formatCurrency(budget.amount)}` : "sem orçamento"}
                   </small>
+                  <small className="mobile-budget-balance">{budgetLabel}</small>
                 </div>
               );
             })}
           </div>
         ) : (
           <p className="mobile-budget-empty">
-            Defina limites em Orçamentos para acompanhar o saldo por categoria.
+            As categorias aparecerão conforme você registrar despesas.
           </p>
         )}
       </div>
@@ -145,8 +121,13 @@ export function PrincipaisCategorias({
       {items.length ? (
         <div className="desktop-category-ranking flex flex-col gap-3">
           {items.map((item) => {
+            const budget = budgetsByCategory.get(item.category.id);
             const barWidth = (item.amount / maxAmount) * 100;
             const pct = Math.round(item.percent * 100);
+            const budgetPercent = budget
+              ? Math.min(Math.max((item.amount / budget.amount) * 100, 0), 100)
+              : 0;
+            const budgetBalance = budget ? budget.amount - item.amount : null;
             return (
               <div key={item.category.id} className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-2">
@@ -173,6 +154,29 @@ export function PrincipaisCategorias({
                     </span>
                   </div>
                 </div>
+                <div className="desktop-category-budget-row">
+                  {budget ? (
+                    <>
+                      <span>
+                        {formatCurrency(item.amount)} de{" "}
+                        {formatCurrency(budget.amount)} orçados
+                      </span>
+                      <strong
+                        className={cn(
+                          budgetBalance !== null &&
+                            budgetBalance < 0 &&
+                            "is-over-budget",
+                        )}
+                      >
+                        {budgetBalance !== null && budgetBalance < 0
+                          ? `${formatCurrency(Math.abs(budgetBalance))} acima`
+                          : `${formatCurrency(budgetBalance ?? 0)} livre`}
+                      </strong>
+                    </>
+                  ) : (
+                    <span>Sem orçamento definido para esta categoria</span>
+                  )}
+                </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-[var(--mc-subtle)]">
                   <div
                     className="h-full rounded-full transition-all"
@@ -182,6 +186,16 @@ export function PrincipaisCategorias({
                     }}
                   />
                 </div>
+                {budget ? (
+                  <div className="desktop-category-budget-track">
+                    <span
+                      style={{
+                        width: `${budgetPercent}%`,
+                        backgroundColor: item.category.color,
+                      }}
+                    />
+                  </div>
+                ) : null}
               </div>
             );
           })}

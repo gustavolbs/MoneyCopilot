@@ -1,22 +1,34 @@
 "use client";
 
 import { subMonths } from "date-fns";
-import { ArrowDownRight, ArrowUpRight, Lightbulb, PiggyBank, ReceiptText, TrendingUp, WalletCards } from "lucide-react";
+import { useState } from "react";
 
-import { PeriodNotice } from "@/components/PeriodNotice";
-import { DataTooltip, InsightTooltip } from "@/components/InsightTooltip";
-import { Card, Label, Screen, Title } from "@/components/ui";
-import { metricsForMonth } from "@/domain/finance";
-import { formatCurrency, formatMonthShort, formatMonthYear, monthKey } from "@/domain/normalize";
-import { useTheme } from "@/lib/theme";
+import { Screen } from "@/components/ui";
+import { metricsForMonth, transactionBelongsToMonth } from "@/domain/finance";
+import { formatMonthShort, formatMonthYear, monthKey } from "@/domain/normalize";
 import { useAppStore } from "@/store/appStore";
 
+import { InsightsAutomaticAnalysis } from "./insights-automatic-analysis";
+import { InsightsDistributionCard } from "./insights-distribution-card";
+import { InsightsEvolutionCard } from "./insights-evolution-card";
+import { InsightsHighlightsCard } from "./insights-highlights-card";
+import { InsightsMetricCards } from "./insights-metric-cards";
+import { InsightsPageHeader } from "./insights-page-header";
+import { InsightsPeriodCard } from "./insights-period-card";
+
+function shiftMonth(month: string, offset: number) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return monthKey(new Date(year, monthNumber - 1 + offset, 1));
+}
+
 export function InsightsView() {
-  const { colors } = useTheme();
   const { insights, transactions, categories, recurrences, accounts } = useAppStore();
-  const now = new Date();
+  const currentMonth = monthKey();
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const selectedMonthDate = new Date(`${selectedMonth}-01T00:00:00`);
+  const selectedMonthLabel = formatMonthYear(selectedMonth);
   const monthlySeries = [3, 2, 1, 0].map((offset) => {
-    const date = subMonths(now, offset);
+    const date = subMonths(selectedMonthDate, offset);
     return {
       label: formatMonthShort(date),
       metrics: metricsForMonth(transactions, categories, monthKey(date), recurrences, accounts),
@@ -33,130 +45,50 @@ export function InsightsView() {
   const averageExpenseChange = percentChange(metrics.expense, previousExpenseAverage);
   const savingsRate = metrics.income > 0 ? (metrics.balance / metrics.income) * 100 : null;
   const maxMonthlyValue = Math.max(...monthlySeries.flatMap((item) => [item.metrics.expense, item.metrics.income]), 1);
-  const topCategory = metrics.byCategory[0];
   const largestExpense = metrics.largestExpenses[0];
-  const transferCount = transactions.filter((transaction) => transaction.type === "transfer" && transaction.transaction_date.startsWith(monthKey())).length;
+  const transferCount = transactions.filter((transaction) => transaction.type === "transfer" && transactionBelongsToMonth(transaction, selectedMonth, accounts)).length;
+  const moveMonth = (offset: number) => {
+    setSelectedMonth((month) => shiftMonth(month, offset));
+  };
 
   return (
     <Screen>
-      <div className="stack small">
-        <Label>Leitura da competência</Label>
-        <Title>Insights</Title>
-      </div>
+      <InsightsPageHeader
+        isCurrentMonth={selectedMonth === currentMonth}
+        monthLabel={selectedMonthLabel}
+        onCurrentMonth={() => setSelectedMonth(currentMonth)}
+        onNextMonth={() => moveMonth(1)}
+        onPreviousMonth={() => moveMonth(-1)}
+      />
 
-      <PeriodNotice label={`Período observado: ${formatMonthYear(monthKey())}`} detail="Comparações por competência, incluindo cartões no mês de vencimento da fatura." />
+      <InsightsPeriodCard monthLabel={selectedMonthLabel} />
 
-      <div className="insights-kpi-grid">
-        <VisualMetric icon={<ReceiptText size={18} />} label="Despesas" value={formatCurrency(metrics.expense)} percentage={expenseChange} inverse />
-        <VisualMetric icon={<TrendingUp size={18} />} label="Receitas" value={formatCurrency(metrics.income)} percentage={incomeChange} />
-        <VisualMetric icon={<PiggyBank size={18} />} label="Taxa de economia" value={savingsRate === null ? "-" : `${Math.round(savingsRate)}%`} percentage={savingsRate} percentageIsValue />
-        <VisualMetric icon={<WalletCards size={18} />} label="Média de despesas" value={formatCurrency(previousExpenseAverage)} percentage={averageExpenseChange} inverse />
-      </div>
+      <InsightsMetricCards
+        averageExpense={previousExpenseAverage}
+        averageExpenseChange={averageExpenseChange}
+        expense={metrics.expense}
+        expenseChange={expenseChange}
+        income={metrics.income}
+        incomeChange={incomeChange}
+        savingsRate={savingsRate}
+      />
 
-      <Card style={{ gap: 16 }}>
-        <div className="insights-section-head">
-          <div><Label>Evolução</Label><strong>Receitas e despesas</strong></div>
-          <div className="insights-chart-legend"><span className="income">Receitas</span><span className="expense">Despesas</span></div>
-        </div>
-        <div className="insights-month-chart" aria-label="Comparativo dos últimos quatro meses">
-          {monthlySeries.map((item) => (
-            <div className="insights-month-column" key={item.label}>
-              <div className="insights-bars">
-                <ChartBar type="income" month={item.label} value={item.metrics.income} maxValue={maxMonthlyValue} />
-                <ChartBar type="expense" month={item.label} value={item.metrics.expense} maxValue={maxMonthlyValue} />
-              </div>
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
+      <InsightsEvolutionCard maxValue={maxMonthlyValue} series={monthlySeries} />
 
       <div className="insights-visual-grid">
-        <Card style={{ gap: 16 }}>
-          <div className="insights-section-head"><div><Label>Distribuição</Label><strong>Principais categorias</strong></div></div>
-          {topCategory ? (
-            <div className="insights-category-overview">
-              <div className="insights-donut" style={{ background: `conic-gradient(${topCategory.category.color} ${topCategory.percent * 100}%, ${colors.subtle} 0)` }}>
-                <div style={{ backgroundColor: colors.surface }}><strong>{Math.round(topCategory.percent * 100)}%</strong><span>do total</span></div>
-              </div>
-              <div className="insights-category-ranking">
-                {metrics.byCategory.slice(0, 4).map((item) => (
-                  <DataTooltip key={item.category.id} title={item.category.name} body={formatCurrency(item.amount)} detail={`${Math.round(item.percent * 100)}% das despesas do mês`}>
-                    <div>
-                      <span><i style={{ backgroundColor: item.category.color }} />{item.category.name}</span>
-                      <strong>{Math.round(item.percent * 100)}%</strong>
-                    </div>
-                  </DataTooltip>
-                ))}
-              </div>
-            </div>
-          ) : <p className="insights-empty" style={{ color: colors.muted }}>Sem despesas nesta competência.</p>}
-        </Card>
-
-        <Card style={{ gap: 14 }}>
-          <div className="insights-section-head"><div><Label>Destaques</Label><strong>Resumo rápido</strong></div></div>
-          <div className="insights-highlights">
-            <Highlight id="projected-close" label="Sobra prevista" value={formatCurrency(metrics.projectedClose)} tooltip="Receitas menos despesas e compromissos recorrentes previstos para o mês." color={metrics.projectedClose >= 0 ? colors.green : colors.red} />
-            <Highlight id="largest-expense" label="Maior despesa" value={largestExpense ? formatCurrency(largestExpense.amount) : "-"} detail={largestExpense?.description} tooltip={largestExpense ? `${largestExpense.description}: ${formatCurrency(largestExpense.amount)}` : "Nenhuma despesa registrada nesta competência."} color={colors.red} />
-            <Highlight id="transfers" label="Transferências" value={String(transferCount)} detail="movimentos internos" tooltip={`${transferCount} transferência(s) interna(s) registrada(s) nesta competência.`} color={colors.blue} />
-          </div>
-        </Card>
+        <InsightsDistributionCard categories={metrics.byCategory} />
+        <InsightsHighlightsCard
+          largestExpense={largestExpense}
+          projectedClose={metrics.projectedClose}
+          transferCount={transferCount}
+        />
       </div>
 
-      <div className="insights-section-head insights-feed-title">
-        <div><Label>Tendências</Label><strong>Análise automática</strong></div>
-      </div>
-      <div className="insights-feed-grid">
-        {insights.map((insight) => {
-          return (
-            <InsightTooltip key={insight.id} insight={insight}>
-              <Card style={{ gap: 8, borderColor: insight.tone === "warning" ? `${colors.red}66` : colors.line }}>
-                <div className={`insight-visual-icon ${insight.tone}`}><Lightbulb size={16} /></div>
-                {insight.percentage !== undefined ? <PercentageValue value={insight.percentage} inverse={insight.id.startsWith("expense") || insight.id.startsWith("growth") || insight.id.startsWith("budget")} /> : null}
-                <strong className="insight-visual-title">{insight.title}</strong>
-                <small style={{ color: colors.muted }}>{insight.comparison ?? insight.body}</small>
-              </Card>
-            </InsightTooltip>
-          );
-        })}
-      </div>
-      {!insights.length ? <Card><p className="insights-empty" style={{ color: colors.muted }}>Registre mais transações para visualizar tendências.</p></Card> : null}
+      <InsightsAutomaticAnalysis insights={insights} />
     </Screen>
   );
 }
 
 function percentChange(current: number, reference: number) {
   return reference > 0 ? ((current - reference) / reference) * 100 : null;
-}
-
-function VisualMetric({ icon, label, value, percentage, inverse = false, percentageIsValue = false }: { icon: React.ReactNode; label: string; value: string; percentage: number | null; inverse?: boolean; percentageIsValue?: boolean }) {
-  const { colors } = useTheme();
-  return (
-    <Card style={{ gap: 8 }}>
-      <div className="insight-metric-top"><span style={{ color: colors.blue, backgroundColor: `${colors.blue}18` }}>{icon}</span><Label>{label}</Label></div>
-      <strong className="insight-metric-value">{value}</strong>
-      {percentageIsValue ? <small style={{ color: colors.muted }}>sobre a receita do mês</small> : <PercentageValue value={percentage} inverse={inverse} />}
-    </Card>
-  );
-}
-
-function PercentageValue({ value, inverse = false }: { value: number | null; inverse?: boolean }) {
-  const { colors } = useTheme();
-  if (value === null) return <span className="percentage-value" style={{ color: colors.muted, backgroundColor: colors.subtle }}>Sem base</span>;
-  const favorable = inverse ? value <= 0 : value >= 0;
-  const Icon = value >= 0 ? ArrowUpRight : ArrowDownRight;
-  return <span className="percentage-value" style={{ color: favorable ? colors.green : colors.red, backgroundColor: favorable ? `${colors.green}18` : `${colors.red}18` }}><Icon size={13} />{value > 0 ? "+" : ""}{Math.round(value)}%</span>;
-}
-
-function ChartBar({ type, month, value, maxValue }: { type: "income" | "expense"; month: string; value: number; maxValue: number }) {
-  const label = type === "income" ? "Receitas" : "Despesas";
-  return (
-    <DataTooltip title={`${label} em ${month}`} body={formatCurrency(value)} detail="Competência mensal">
-      <div className={`insights-bar ${type}`} style={{ height: `${Math.max((value / maxValue) * 100, value > 0 ? 4 : 0)}%` }} />
-    </DataTooltip>
-  );
-}
-
-function Highlight({ id, label, value, detail, tooltip, color }: { id: string; label: string; value: string; detail?: string; tooltip: string; color: string }) {
-  return <DataTooltip title={label} body={tooltip} detail={value}><div className="insight-highlight" data-highlight-id={id}><i style={{ backgroundColor: color }} /><div><span>{label}</span>{detail ? <small>{detail}</small> : null}</div><strong style={{ color }}>{value}</strong></div></DataTooltip>;
 }

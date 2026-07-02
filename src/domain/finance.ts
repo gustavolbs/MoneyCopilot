@@ -248,7 +248,7 @@ export function budgetProgress(
   transactions: Transaction[],
   budget: Budget,
   accounts: Account[] = [],
-) {
+): { spent: number; percent: number; status: "ok" | "warning" | "over" } {
   const spent = activeTransactions(transactions)
     .filter(
       (item) =>
