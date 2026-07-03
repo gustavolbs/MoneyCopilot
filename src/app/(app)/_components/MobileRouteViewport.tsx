@@ -24,6 +24,8 @@ const ignoredSwipeTargets = [
   ".budget-card-grid",
   ".mobile-budget-scroll",
   ".mobile-patrimonio-scroll",
+  ".copilot-layout",
+  ".copilot-messages",
   ".recharts-wrapper",
 ].join(",");
 

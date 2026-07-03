@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Bot,
   Home,
   Lightbulb,
   type LucideIcon,
@@ -41,6 +42,12 @@ export const appNavigation: AppNavigationItem[] = [
     label: "Insights",
     mobileLabel: "Insights",
     icon: Lightbulb,
+  },
+  {
+    href: "/copilot" as Route,
+    label: "Copilot",
+    mobileLabel: "Copilot",
+    icon: Bot,
   },
   {
     href: "/ajustes",
