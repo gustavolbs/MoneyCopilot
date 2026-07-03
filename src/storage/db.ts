@@ -99,17 +99,19 @@ function normalize(state: LocalDbState): LocalDbState {
   const budgetMap = new Map<string, Budget>();
   for (const budget of state.budgets ?? []) {
     const category_id = budget.category_id === mergedRestaurantCategoryId ? foodCategoryId : budget.category_id;
+    if (budget.category_id === mergedRestaurantCategoryId && budget.deleted_at) continue;
     const key = `${budget.household_id}:${category_id}:${budget.month}`;
     const existing = budgetMap.get(key);
     if (!existing) {
       budgetMap.set(key, { ...budget, category_id });
       continue;
     }
+    if (budget.deleted_at) continue;
     budgetMap.set(key, {
       ...existing,
-      amount: Number(existing.amount) + Number(budget.amount),
+      amount: (existing.deleted_at ? 0 : Number(existing.amount)) + Number(budget.amount),
       updated_at: existing.updated_at > budget.updated_at ? existing.updated_at : budget.updated_at,
-      deleted_at: existing.deleted_at && budget.deleted_at ? existing.deleted_at : null,
+      deleted_at: null,
     });
   }
   const budgets = Array.from(budgetMap.values());
