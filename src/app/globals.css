@@ -3858,6 +3858,29 @@ button {
   font-size: 12px;
 }
 
+.editor-recurrence-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.editor-recurrence-button {
+  min-height: 34px;
+  border: 1px solid var(--mc-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mc-elevated) 86%, transparent);
+  color: var(--mc-muted);
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.editor-recurrence-button[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--mc-blue) 55%, var(--mc-line));
+  background: color-mix(in srgb, var(--mc-blue) 16%, transparent);
+  color: var(--mc-blue);
+}
+
 .editor-type-button {
   min-height: 34px;
   border: 1px solid var(--mc-line);
@@ -3937,6 +3960,30 @@ button {
   border-color: color-mix(in srgb, var(--mc-blue) 38%, transparent);
   background: color-mix(in srgb, var(--mc-blue) 14%, transparent);
   color: color-mix(in srgb, var(--mc-blue) 75%, var(--mc-ink));
+}
+
+.transaction-recurring-badge {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--mc-gold) 16%, transparent);
+  color: color-mix(in srgb, var(--mc-gold) 78%, var(--mc-ink));
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.transaction-recurring-table-badge {
+  width: fit-content;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mc-gold) 16%, transparent);
+  color: color-mix(in srgb, var(--mc-gold) 78%, var(--mc-ink)) !important;
+  padding: 3px 7px;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .payment-badge > span:first-child {

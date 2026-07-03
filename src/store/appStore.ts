@@ -15,6 +15,7 @@ import {
   reconcileHouseholds,
   reconcileDeletedAccountReferences,
   createRecurrence,
+  materializeDueRecurrences,
   createAccount,
   createBalanceMovement,
   updateAccount,
@@ -27,6 +28,7 @@ import {
   listRecurrences,
   listRules,
   listTransactions,
+  linkTransactionToRecurrence,
   setAppState,
   softDeleteAccount,
   softDeleteTransaction,
@@ -60,6 +62,26 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
   ]);
 }
 
+function addDaysToISODate(date: string, days: number) {
+  const [year, month, day] = date.split('-').map(Number);
+  const target = new Date(year, month - 1, day + days);
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+}
+
+function addMonthsToISODate(date: string, months: number) {
+  const [year, month, day] = date.split('-').map(Number);
+  const target = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, lastDay));
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+}
+
+function nextRecurrenceDate(date: string, frequency: Recurrence['frequency']) {
+  if (frequency === 'weekly') return addDaysToISODate(date, 7);
+  if (frequency === 'yearly') return addMonthsToISODate(date, 12);
+  return addMonthsToISODate(date, 1);
+}
+
 type AppState = {
   bootstrapped: boolean;
   loading: boolean;
@@ -91,7 +113,7 @@ type AppState = {
   editTransaction: (transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'payment_method' | 'notes'>>) => Promise<void>;
   completeInstallments: (transaction: Transaction, currentIndex: number, total: number) => Promise<void>;
   saveBudget: (categoryId: string, amount: number, month?: string) => Promise<void>;
-  addRecurrence: (transaction: Transaction) => Promise<void>;
+  addRecurrence: (transaction: Transaction, frequency?: Recurrence['frequency']) => Promise<void>;
   sync: () => Promise<SyncStatus>;
   resetCache: () => Promise<void>;
   addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
@@ -236,6 +258,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
     await reconcileDeletedAccountReferences(household.id);
+    await materializeDueRecurrences(household.id);
     const [accounts, transactions, rules, budgets, recurrences, pendingMutations, syncLogs] = await Promise.all([
       listAccounts(household.id),
       listTransactions(household.id),
@@ -305,19 +328,41 @@ export const useAppStore = create<AppState>((set, get) => ({
     void get().sync();
   },
 
-  addRecurrence: async (transaction) => {
-    await createRecurrence({
+  addRecurrence: async (transaction, frequency = 'monthly') => {
+    const alreadyExists = get().recurrences.find(
+      (recurrence) =>
+        recurrence.active &&
+        !recurrence.deleted_at &&
+        recurrence.household_id === transaction.household_id &&
+        recurrence.account_id === transaction.account_id &&
+        recurrence.category_id === transaction.category_id &&
+        recurrence.description === transaction.description &&
+        recurrence.amount === transaction.amount &&
+        recurrence.type === transaction.type &&
+        recurrence.frequency === frequency,
+    );
+    if (alreadyExists) {
+      if (transaction.recurrence_id !== alreadyExists.id) {
+        await linkTransactionToRecurrence(transaction, alreadyExists.id);
+        await get().refresh();
+        void get().sync();
+      }
+      return;
+    }
+
+    const recurrence = await createRecurrence({
       household_id: transaction.household_id,
       account_id: transaction.account_id,
       category_id: transaction.category_id,
       description: transaction.description,
       amount: transaction.amount,
       type: transaction.type,
-      frequency: 'monthly',
+      frequency,
       day_of_month: Number(transaction.transaction_date.slice(8, 10)),
-      next_due_date: transaction.transaction_date,
+      next_due_date: nextRecurrenceDate(transaction.transaction_date, frequency),
       active: true,
     });
+    await linkTransactionToRecurrence(transaction, recurrence.id);
     await get().refresh();
     void get().sync();
   },

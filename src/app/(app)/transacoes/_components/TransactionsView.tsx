@@ -32,6 +32,7 @@ export function TransactionsView() {
     editTransaction,
     deleteTransaction,
     completeInstallments,
+    addRecurrence,
   } = useAppStore();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -255,6 +256,11 @@ export function TransactionsView() {
         onCompleteInstallments={async (currentIndex, total) => {
           if (!editing) return;
           await completeInstallments(editing, currentIndex, total);
+          setEditing(null);
+        }}
+        onAddRecurrence={async (frequency) => {
+          if (!editing) return;
+          await addRecurrence(editing, frequency);
           setEditing(null);
         }}
       />

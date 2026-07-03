@@ -16,6 +16,18 @@ function addMonthsToISODate(date: string, months: number) {
   return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
 }
 
+function addDaysToISODate(date: string, days: number) {
+  const [year, month, day] = date.split('-').map(Number);
+  const target = new Date(year, month - 1, day + days);
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+}
+
+function nextRecurrenceDate(date: string, frequency: Recurrence['frequency']) {
+  if (frequency === 'weekly') return addDaysToISODate(date, 7);
+  if (frequency === 'yearly') return addMonthsToISODate(date, 12);
+  return addMonthsToISODate(date, 1);
+}
+
 function splitInstallmentCents(total: number, count: number) {
   const totalCents = Math.round(total * 100);
   const base = Math.floor(totalCents / count);
@@ -748,6 +760,84 @@ export async function createRecurrence(params: Omit<Recurrence, 'id' | 'created_
   });
   await enqueueMutation('recurrences', recurrence.id, 'upsert', recurrence);
   return recurrence;
+}
+
+export async function linkTransactionToRecurrence(transaction: Transaction, recurrenceId: string) {
+  const updated = await updateLocalDb<Transaction | null>((db) => {
+    const current = db.transactions.find((item) => item.id === transaction.id && !item.deleted_at);
+    if (!current) return null;
+    current.recurrence_id = recurrenceId;
+    current.updated_at = now();
+    enqueueInline(db, 'transactions', current.id, current);
+    return { ...current };
+  });
+  return updated;
+}
+
+export async function materializeDueRecurrences(householdId: string, today = new Date().toISOString().slice(0, 10)) {
+  const created: Transaction[] = [];
+  await updateLocalDb((db) => {
+    const timestamp = now();
+    const householdRecurrences = db.recurrences.filter(
+      (recurrence) =>
+        recurrence.household_id === householdId &&
+        recurrence.active &&
+        !recurrence.deleted_at &&
+        recurrence.next_due_date <= today,
+    );
+
+    for (const recurrence of householdRecurrences) {
+      let dueDate = recurrence.next_due_date;
+      let guard = 0;
+      while (dueDate <= today && guard < 36) {
+        const alreadyCreated = db.transactions.some(
+          (transaction) =>
+            transaction.recurrence_id === recurrence.id &&
+            transaction.transaction_date === dueDate &&
+            !transaction.deleted_at,
+        );
+        if (!alreadyCreated) {
+          const account = db.accounts.find((item) => item.id === recurrence.account_id);
+          const transaction: Transaction = {
+            id: createId(),
+            household_id: recurrence.household_id,
+            account_id: recurrence.account_id,
+            transfer_account_id: null,
+            category_id: recurrence.category_id,
+            created_by: null,
+            description: recurrence.description,
+            normalized_description: normalizeText(recurrence.description),
+            amount: recurrence.amount,
+            type: recurrence.type,
+            transaction_date: dueDate,
+            payment_method: recurrence.type === 'expense' ? (account?.type === 'credit_card' ? 'credit_card' : 'cash') : null,
+            notes: 'recurrence:auto',
+            source: 'recurring',
+            recurrence_id: recurrence.id,
+            installment_group_id: null,
+            installment_index: null,
+            installment_total: null,
+            installment_base_description: null,
+            created_at: timestamp,
+            updated_at: timestamp,
+            deleted_at: null,
+          };
+          db.transactions.push(transaction);
+          enqueueInline(db, 'transactions', transaction.id, transaction);
+          created.push(transaction);
+        }
+        dueDate = nextRecurrenceDate(dueDate, recurrence.frequency);
+        guard += 1;
+      }
+
+      if (recurrence.next_due_date !== dueDate) {
+        recurrence.next_due_date = dueDate;
+        recurrence.updated_at = timestamp;
+        enqueueInline(db, 'recurrences', recurrence.id, recurrence);
+      }
+    }
+  });
+  return created;
 }
 
 export async function countPendingMutations() {

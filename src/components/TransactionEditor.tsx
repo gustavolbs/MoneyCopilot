@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, CreditCard, Layers3, ReceiptText, Tag, Trash2, Wallet, X } from 'lucide-react';
+import { CalendarDays, CreditCard, Layers3, ReceiptText, Repeat, Tag, Trash2, Wallet, X } from 'lucide-react';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { CategoryBadge } from '@/components/CategoryBadge';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { transactionMonth } from '@/domain/finance';
 import { formatCurrency, formatDate, formatMonthYear } from '@/domain/normalize';
-import { Account, Category, PaymentMethod, Transaction, TransactionType } from '@/domain/types';
+import { Account, Category, PaymentMethod, Recurrence, Transaction, TransactionType } from '@/domain/types';
 
 import { Button, ComboboxField, Field } from './ui';
 
@@ -23,6 +23,7 @@ type Props = {
   onSave: (patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'payment_method' | 'notes'>>) => Promise<void>;
   onDelete: () => Promise<void>;
   onCompleteInstallments: (currentIndex: number, total: number) => Promise<void>;
+  onAddRecurrence: (frequency: Recurrence['frequency']) => Promise<void>;
 };
 
 const typeOptions: Array<{ label: string; value: TransactionType }> = [
@@ -42,6 +43,12 @@ const paymentOptions: Array<{ label: string; value: PaymentMethod; icon: typeof 
   { label: 'Cartão', value: 'credit_card', icon: CreditCard },
 ];
 
+const recurrenceOptions: Array<{ label: string; value: Recurrence['frequency'] }> = [
+  { label: 'Semanal', value: 'weekly' },
+  { label: 'Mensal', value: 'monthly' },
+  { label: 'Anual', value: 'yearly' },
+];
+
 const installmentPattern = /\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*$/;
 
 function inferInstallment(description: string) {
@@ -54,7 +61,7 @@ function installmentBase(description: string) {
   return description.replace(installmentPattern, '').trim();
 }
 
-export function TransactionEditor({ transaction, transactions, categories, accounts, onClose, onSave, onDelete, onCompleteInstallments }: Props) {
+export function TransactionEditor({ transaction, transactions, categories, accounts, onClose, onSave, onDelete, onCompleteInstallments, onAddRecurrence }: Props) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
@@ -63,6 +70,7 @@ export function TransactionEditor({ transaction, transactions, categories, accou
   const [cardAccountId, setCardAccountId] = useState<string | null>(null);
   const [installmentIndex, setInstallmentIndex] = useState('');
   const [installmentTotal, setInstallmentTotal] = useState('');
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<Recurrence['frequency']>('monthly');
 
   useEffect(() => {
     if (!transaction) return;
@@ -75,6 +83,7 @@ export function TransactionEditor({ transaction, transactions, categories, accou
     setCardAccountId(transaction.payment_method === 'credit_card' ? transaction.account_id : accounts.find((account) => account.type === 'credit_card')?.id ?? null);
     setInstallmentIndex(String(transaction.installment_index ?? inferred.index));
     setInstallmentTotal(String(transaction.installment_total ?? inferred.total));
+    setRecurrenceFrequency('monthly');
   }, [accounts, transaction]);
 
   const availableCategories = useMemo(
@@ -268,6 +277,34 @@ export function TransactionEditor({ transaction, transactions, categories, accou
                   })}
                 </div>
               ) : null}
+            </EditorSection>
+          ) : null}
+
+          {type === 'expense' ? (
+            <EditorSection icon={<Repeat size={16} />} title="Recorrência">
+              <ToggleGroup value={[recurrenceFrequency]} onValueChange={(values) => setRecurrenceFrequency((values[0] ?? recurrenceFrequency) as Recurrence['frequency'])} className="editor-recurrence-row" aria-label="Frequência da recorrência">
+                {recurrenceOptions.map((option) => (
+                  <ToggleGroupItem
+                    key={option.value}
+                    value={option.value}
+                    className="editor-recurrence-button"
+                    data-selected={recurrenceFrequency === option.value}
+                  >
+                    {option.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <p className="editor-installment-hint">
+                Mantém este lançamento como primeira ocorrência e cria os próximos automaticamente quando vencerem.
+              </p>
+              <ShadcnButton
+                type="button"
+                variant="outline"
+                className="editor-installment-action"
+                onClick={() => void onAddRecurrence(recurrenceFrequency)}
+              >
+                Cadastrar recorrência
+              </ShadcnButton>
             </EditorSection>
           ) : null}
         </div>

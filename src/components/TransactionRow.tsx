@@ -44,6 +44,8 @@ export function TransactionRow({
     transaction.payment_method === "credit_card"
       ? `Fatura em ${formatDate(effectiveDate)}`
       : null;
+  const isRecurring =
+    transaction.source === "recurring" || Boolean(transaction.recurrence_id);
 
   return (
     <TableRow className="transaction-table-row" onClick={onPress}>
@@ -80,6 +82,11 @@ export function TransactionRow({
         )}
         {paymentDetail ? (
           <small style={{ color: colors.muted }}>{paymentDetail}</small>
+        ) : null}
+        {isRecurring ? (
+          <small className="transaction-recurring-table-badge">
+            Recorrente
+          </small>
         ) : null}
       </TableCell>
       <TableCell className="transaction-amount-cell" style={{ color: amountColor }}>

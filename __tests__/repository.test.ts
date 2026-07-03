@@ -2,7 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Account, Transaction } from "@/domain/types";
 import { readLocalDb, writeLocalDb } from "@/storage/db";
-import { completeInstallmentsFromTransaction, createBalanceMovement, createTransactionsFromInput, listAccounts, reconcileDeletedAccountReferences } from "@/storage/repository";
+import {
+  completeInstallmentsFromTransaction,
+  createBalanceMovement,
+  createRecurrence,
+  createTransactionsFromInput,
+  linkTransactionToRecurrence,
+  listAccounts,
+  materializeDueRecurrences,
+  reconcileDeletedAccountReferences,
+} from "@/storage/repository";
 
 function installLocalStorage() {
   const values = new Map<string, string>();
@@ -220,5 +229,90 @@ describe("installment transactions", () => {
     expect(group.map((item) => item.installment_index)).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12]);
     expect(group.map((item) => item.description)).toContain("Azul Linhas aéreas 12/12");
     expect(group.find((item) => item.installment_index === 6)?.transaction_date).toBe("2026-07-10");
+  });
+});
+
+describe("recurring transactions", () => {
+  it("links an existing transaction to a recurrence", async () => {
+    installLocalStorage();
+    const state = await readLocalDb();
+    const transaction: Transaction = {
+      id: "spotify",
+      household_id: "household",
+      account_id: null,
+      transfer_account_id: null,
+      category_id: "cat_expense_subscriptions",
+      created_by: "user",
+      description: "Spotify Premium",
+      normalized_description: "spotify premium",
+      amount: 21.9,
+      type: "expense",
+      transaction_date: "2026-06-10",
+      payment_method: "cash",
+      notes: null,
+      source: "manual",
+      recurrence_id: null,
+      installment_group_id: null,
+      installment_index: null,
+      installment_total: null,
+      installment_base_description: null,
+      created_at: "2026-06-10T00:00:00.000Z",
+      updated_at: "2026-06-10T00:00:00.000Z",
+      deleted_at: null,
+    };
+    state.transactions = [transaction];
+    await writeLocalDb(state);
+
+    const recurrence = await createRecurrence({
+      household_id: "household",
+      account_id: null,
+      category_id: "cat_expense_subscriptions",
+      description: "Spotify Premium",
+      amount: 21.9,
+      type: "expense",
+      frequency: "monthly",
+      day_of_month: 10,
+      next_due_date: "2026-07-10",
+      active: true,
+    });
+
+    await linkTransactionToRecurrence(transaction, recurrence.id);
+    const db = await readLocalDb();
+
+    expect(db.transactions.find((item) => item.id === transaction.id)?.recurrence_id).toBe(recurrence.id);
+  });
+
+  it("materializes due recurring expenses and advances the next due date", async () => {
+    installLocalStorage();
+    const state = await readLocalDb();
+    const card = account({ id: "card", name: "Cartão Itaú", type: "credit_card" });
+    state.accounts = [card];
+    await writeLocalDb(state);
+
+    const recurrence = await createRecurrence({
+      household_id: "household",
+      account_id: card.id,
+      category_id: "cat_expense_subscriptions",
+      description: "Spotify Premium",
+      amount: 21.9,
+      type: "expense",
+      frequency: "monthly",
+      day_of_month: 10,
+      next_due_date: "2026-05-10",
+      active: true,
+    });
+
+    const created = await materializeDueRecurrences("household", "2026-07-12");
+    const db = await readLocalDb();
+    const updatedRecurrence = db.recurrences.find((item) => item.id === recurrence.id);
+
+    expect(created).toHaveLength(3);
+    expect(created.map((transaction) => transaction.transaction_date)).toEqual(["2026-05-10", "2026-06-10", "2026-07-10"]);
+    expect(created.every((transaction) => transaction.recurrence_id === recurrence.id)).toBe(true);
+    expect(created.every((transaction) => transaction.source === "recurring")).toBe(true);
+    expect(created.every((transaction) => transaction.payment_method === "credit_card")).toBe(true);
+    expect(updatedRecurrence?.next_due_date).toBe("2026-08-10");
+
+    await expect(materializeDueRecurrences("household", "2026-07-12")).resolves.toHaveLength(0);
   });
 });

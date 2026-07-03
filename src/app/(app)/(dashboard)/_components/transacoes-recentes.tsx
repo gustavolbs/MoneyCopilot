@@ -87,6 +87,9 @@ export function TransacoesRecentes({
                 : transaction.type === "transfer"
                   ? "text-[var(--mc-muted)]"
                   : "text-[var(--mc-red)]";
+            const isRecurring =
+              transaction.source === "recurring" ||
+              Boolean(transaction.recurrence_id);
 
             return (
               <div key={transaction.id}>
@@ -121,6 +124,11 @@ export function TransacoesRecentes({
                       {transaction.installment_total ? (
                         <span className="rounded bg-[var(--mc-blue)]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[var(--mc-blue)]">
                           {transaction.installment_index}/{transaction.installment_total}
+                        </span>
+                      ) : null}
+                      {isRecurring ? (
+                        <span className="transaction-recurring-badge">
+                          Recorrente
                         </span>
                       ) : null}
                     </div>
