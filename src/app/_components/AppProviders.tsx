@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useRef } from 'react';
 
 import { AppLoading } from './AppLoading';
+import { DisableMobileZoom } from './DisableMobileZoom';
 import { useTheme } from '@/lib/theme';
 import { useAppStore } from '@/store/appStore';
 
@@ -25,7 +26,19 @@ export function AppProviders({ children }: { children: ReactNode }) {
     document.documentElement.style.setProperty('--mc-ink', colors.ink);
   }, [colors.bg, colors.ink, isDark]);
 
-  if (!bootstrapped) return <AppLoading />;
+  if (!bootstrapped) {
+    return (
+      <>
+        <DisableMobileZoom />
+        <AppLoading />
+      </>
+    );
+  }
 
-  return children;
+  return (
+    <>
+      <DisableMobileZoom />
+      {children}
+    </>
+  );
 }

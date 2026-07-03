@@ -34,7 +34,7 @@ const tx = (overrides: Partial<Transaction>): Transaction => ({
   amount: overrides.amount ?? 0,
   type: overrides.type ?? "expense",
   transaction_date: overrides.transaction_date ?? "2026-06-17",
-  category_id: overrides.category_id ?? "cat_expense_restaurants",
+  category_id: overrides.category_id ?? "cat_expense_food",
   ...overrides,
 });
 
@@ -52,7 +52,7 @@ describe("finance calculations", () => {
           id: "2",
           type: "expense",
           amount: 250,
-          category_id: "cat_expense_restaurants",
+          category_id: "cat_expense_food",
         }),
         tx({
           id: "3",
@@ -224,7 +224,7 @@ describe("finance calculations", () => {
     const budget: Budget = {
       id: "b1",
       household_id: "h1",
-      category_id: "cat_expense_restaurants",
+      category_id: "cat_expense_food",
       month: "2026-06",
       amount: 1000,
       created_at: "",

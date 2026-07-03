@@ -73,6 +73,7 @@
 html,
 body {
   min-height: 100%;
+  touch-action: manipulation;
 }
 
 body {
@@ -103,6 +104,7 @@ button,
 input,
 textarea {
   font: inherit;
+  touch-action: manipulation;
 }
 
 button {
@@ -3915,6 +3917,7 @@ button {
 .settings-account-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
 }
 
@@ -4526,6 +4529,17 @@ button {
   padding: 0 !important;
 }
 
+.settings-payment-manager-modal {
+  box-sizing: border-box;
+  width: min(1060px, calc(100vw - 48px));
+  max-width: calc(100vw - 48px) !important;
+  border-color: color-mix(in srgb, var(--mc-green) 18%, var(--mc-line)) !important;
+  background:
+    radial-gradient(circle at 12% -10%, color-mix(in srgb, var(--mc-green) 14%, transparent), transparent 40%),
+    linear-gradient(180deg, color-mix(in srgb, var(--mc-surface) 74%, var(--mc-bg)), var(--mc-bg) 48%) !important;
+  padding: 0 !important;
+}
+
 .settings-family-manager-modal > header {
   border-bottom-color: color-mix(in srgb, var(--mc-blue) 22%, var(--mc-line));
   border-radius: 14px 14px 0 0;
@@ -4554,7 +4568,41 @@ button {
   text-transform: uppercase;
 }
 
+.settings-payment-manager-modal > header {
+  border-bottom-color: color-mix(in srgb, var(--mc-green) 20%, var(--mc-line));
+  border-radius: 14px 14px 0 0;
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--mc-green) 16%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--mc-green) 7%, transparent), transparent),
+    color-mix(in srgb, var(--mc-surface) 78%, var(--mc-bg));
+  padding: 18px 22px;
+}
+
+.settings-payment-manager-modal > header > div {
+  min-width: 0;
+}
+
+.settings-payment-manager-modal h2 {
+  color: var(--mc-ink);
+  font-size: 22px;
+  letter-spacing: -0.035em;
+}
+
+.settings-payment-manager-modal header p {
+  color: color-mix(in srgb, var(--mc-green) 55%, var(--mc-muted)) !important;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .settings-family-manager-modal .settings-manager-content {
+  gap: 16px;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.settings-payment-manager-modal .settings-manager-content {
   gap: 16px;
   min-width: 0;
   overflow-x: hidden;
@@ -4665,6 +4713,71 @@ button {
   align-items: stretch;
   flex-direction: column;
   gap: 12px;
+}
+
+.settings-payment-sidebar {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-payment-hero {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border: 1px solid color-mix(in srgb, var(--mc-green) 20%, var(--mc-line));
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--mc-green) 16%, transparent), transparent 36%),
+    color-mix(in srgb, var(--mc-green) 6%, var(--mc-surface));
+  padding: 16px;
+}
+
+.settings-payment-hero-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--mc-green) 16%, transparent);
+  color: var(--mc-green);
+}
+
+.settings-payment-hero div {
+  min-width: 0;
+}
+
+.settings-payment-hero small,
+.settings-payment-hero strong,
+.settings-payment-hero p {
+  display: block;
+  margin: 0;
+}
+
+.settings-payment-hero small {
+  color: color-mix(in srgb, var(--mc-green) 66%, var(--mc-muted));
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.settings-payment-hero strong {
+  margin-top: 3px;
+  color: var(--mc-ink);
+  font-size: 20px;
+  letter-spacing: -0.035em;
+}
+
+.settings-payment-hero p {
+  margin-top: 6px;
+  color: var(--mc-muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .settings-family-summary-strip {
@@ -4921,6 +5034,7 @@ button {
 }
 
 .settings-payment-toolbar {
+  align-items: flex-start;
   border: 1px solid color-mix(in srgb, var(--mc-line) 58%, transparent);
   border-radius: 16px;
   background: color-mix(in srgb, var(--mc-blue) 4%, transparent);
@@ -4952,8 +5066,9 @@ button {
 }
 
 .settings-account-card {
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--mc-line) 76%, transparent);
   border-radius: 18px;
@@ -4961,8 +5076,17 @@ button {
   padding: 12px;
 }
 
+.settings-account-card:hover {
+  border-color: color-mix(in srgb, var(--mc-green) 24%, var(--mc-line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--mc-green) 5%, transparent), transparent),
+    color-mix(in srgb, var(--mc-surface) 88%, transparent);
+}
+
 .settings-account-card-main {
-  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
 
@@ -4973,7 +5097,7 @@ button {
 }
 
 .settings-account-card .account-editor {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
   width: 100%;
 }
 
@@ -4993,29 +5117,27 @@ button {
 }
 
 .auth-shell {
-  width: min(1120px, 100%);
-  min-height: min(720px, calc(100dvh - 36px));
+  width: min(1160px, calc(100% - 28px));
+  min-height: min(760px, calc(100dvh - 28px));
   display: grid;
   overflow: hidden;
-  border: 1px solid var(--mc-line);
-  border-radius: 16px;
+  border: 1px solid rgba(53, 130, 255, 0.22);
+  border-radius: 30px;
   margin: auto;
-  background: var(--mc-surface);
-  box-shadow: 0 28px 80px rgba(19, 36, 58, 0.14);
+  background:
+    radial-gradient(circle at 14% 12%, rgba(53, 130, 255, 0.2), transparent 24rem),
+    linear-gradient(145deg, #07111f 0%, #0b1728 58%, #07101d 100%);
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.36);
 }
 
 .auth-brand-panel {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  padding: 28px 24px;
+  gap: 26px;
+  padding: 30px 24px;
   background:
-    radial-gradient(
-      circle at 90% 10%,
-      rgba(94, 167, 255, 0.28),
-      transparent 18rem
-    ),
-    linear-gradient(145deg, #061b31 0%, #0a3156 100%);
+    radial-gradient(circle at 86% 10%, rgba(53, 130, 255, 0.35), transparent 18rem),
+    radial-gradient(circle at 8% 80%, rgba(34, 211, 238, 0.13), transparent 16rem);
   color: #f4f9ff;
 }
 
@@ -5030,15 +5152,16 @@ button {
   font-size: 15px;
 }
 .auth-brand .brand-logo-copy span {
-  color: #a9c2db;
+  color: #8fa6c4;
   font-size: 10px;
 }
 
 .auth-pitch {
   max-width: 480px;
+  margin-top: auto;
 }
 .auth-eyebrow {
-  color: #8dc4ff;
+  color: #5ea7ff;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -5054,7 +5177,7 @@ button {
 .auth-pitch p {
   max-width: 500px;
   margin: 14px 0 0;
-  color: #b5c9dc;
+  color: #9fb0c7;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -5066,15 +5189,20 @@ button {
 }
 .auth-benefits > div {
   gap: 12px;
+  border: 1px solid rgba(115, 139, 170, 0.16);
+  border-radius: 18px;
+  padding: 13px;
+  background: rgba(15, 27, 46, 0.56);
 }
 .auth-benefits > div > span {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border: 1px solid rgba(53, 130, 255, 0.2);
+  border-radius: 999px;
   display: grid;
   place-items: center;
-  background: rgba(141, 196, 255, 0.13);
-  color: #8dc4ff;
+  background: rgba(53, 130, 255, 0.14);
+  color: #5ea7ff;
 }
 .auth-benefits p {
   margin: 0;
@@ -5088,7 +5216,7 @@ button {
 }
 .auth-benefits small {
   margin-top: 3px;
-  color: #9db4cb;
+  color: #8fa6c4;
   font-size: 9px;
 }
 
@@ -5096,7 +5224,15 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
+  margin: 10px;
+  border: 1px solid rgba(115, 139, 170, 0.16);
+  border-radius: 24px;
   padding: 28px 22px;
+  background:
+    linear-gradient(180deg, rgba(31, 43, 64, 0.92), rgba(16, 28, 47, 0.92)),
+    var(--mc-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .auth-form-heading {
@@ -5105,11 +5241,12 @@ button {
 .auth-mobile-lock {
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border: 1px solid rgba(53, 130, 255, 0.22);
+  border-radius: 999px;
   display: inline-grid;
   place-items: center;
   margin-bottom: 12px;
-  background: color-mix(in srgb, var(--mc-blue) 14%, transparent);
+  background: rgba(53, 130, 255, 0.13);
   color: var(--mc-blue);
 }
 .auth-form-heading h2 {
@@ -5124,35 +5261,54 @@ button {
   font-size: 12px;
 }
 
+.auth-mode-tabs {
+  display: block !important;
+  width: 100%;
+}
+
 .auth-mode-switch {
-  display: grid;
+  display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  border-radius: 10px;
+  width: 100% !important;
+  height: auto !important;
+  gap: 5px;
+  border: 1px solid rgba(115, 139, 170, 0.18);
+  border-radius: 999px;
   margin-top: 24px;
-  padding: 4px;
-  background: var(--mc-subtle);
+  padding: 5px;
+  background: rgba(8, 17, 31, 0.72);
 }
 
+.auth-mode-switch [data-slot="tabs-trigger"],
 .auth-mode-switch button {
+  height: auto !important;
   min-height: 38px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--mc-muted);
-  font-size: 11px;
-  font-weight: 700;
+  border: 0 !important;
+  border-radius: 999px;
+  padding: 0 12px !important;
+  background: transparent !important;
+  color: #8fa6c4 !important;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: none !important;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
+.auth-mode-switch [data-slot="tabs-trigger"][data-active],
+.auth-mode-switch [data-slot="tabs-trigger"].active,
 .auth-mode-switch button.active {
-  background: var(--mc-surface);
-  color: var(--mc-ink);
-  box-shadow: 0 4px 12px rgba(19, 36, 58, 0.08);
+  background: linear-gradient(180deg, rgba(53, 130, 255, 0.28), rgba(53, 130, 255, 0.14)) !important;
+  color: #eaf3ff !important;
+  box-shadow: 0 10px 24px rgba(53, 130, 255, 0.14) !important;
 }
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 13px;
   margin-top: 20px;
 }
 .auth-field-group {
@@ -5166,11 +5322,11 @@ button {
 .auth-field-group input {
   width: 100%;
   min-height: 48px;
-  border: 1px solid var(--mc-line);
-  border-radius: 8px;
+  border: 1px solid rgba(115, 139, 170, 0.18);
+  border-radius: 14px;
   outline: none;
-  padding: 0 13px;
-  background: var(--mc-elevated);
+  padding: 0 14px;
+  background: rgba(8, 17, 31, 0.5);
   color: var(--mc-ink);
   font: inherit;
   font-weight: 500;
@@ -5181,7 +5337,7 @@ button {
 }
 .auth-field-group input:focus {
   border-color: var(--mc-blue);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mc-blue) 14%, transparent);
+  box-shadow: 0 0 0 3px rgba(53, 130, 255, 0.16);
 }
 .auth-field-group input[aria-invalid="true"] {
   border-color: color-mix(in srgb, var(--mc-red) 65%, var(--mc-line));
@@ -5189,8 +5345,9 @@ button {
 .auth-password-field {
   position: relative;
   height: 48px;
-  border-color: var(--mc-line);
-  background: var(--mc-elevated);
+  border-color: rgba(115, 139, 170, 0.18);
+  border-radius: 14px;
+  background: rgba(8, 17, 31, 0.5);
 }
 .auth-password-field input {
   min-height: 46px;
@@ -5199,18 +5356,25 @@ button {
 }
 .auth-password-field button {
   position: absolute;
-  inset: 0 5px 0 auto;
+  top: 50%;
+  right: 5px;
   width: 40px;
+  height: 40px;
   border: 0;
+  border-radius: 12px;
   background: transparent;
   color: var(--mc-muted);
   display: grid;
   place-items: center;
+  transform: translateY(-50%);
+}
+.auth-password-field button svg {
+  display: block;
 }
 .auth-feedback {
   gap: 8px;
   border: 1px solid;
-  border-radius: 8px;
+  border-radius: 14px;
   padding: 10px 12px;
   font-size: 11px;
   line-height: 1.45;
@@ -5227,10 +5391,14 @@ button {
 }
 .auth-submit {
   width: 100%;
-  margin-top: 2px;
+  min-height: 48px;
+  margin-top: 4px;
   border: 0;
-  background: var(--mc-ink);
-  color: var(--mc-bg);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2f7dff 0%, #5ea7ff 100%);
+  color: #f8fbff;
+  font-weight: 850;
+  box-shadow: 0 16px 34px rgba(53, 130, 255, 0.2);
 }
 .auth-alternate {
   margin: 18px 0 0;
@@ -5249,7 +5417,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  border-top: 1px solid var(--mc-line);
+  border-top: 1px solid rgba(115, 139, 170, 0.16);
   margin-top: 22px;
   padding-top: 18px;
   color: var(--mc-muted);
@@ -6505,6 +6673,7 @@ button {
     display: flex;
   }
   .auth-form-panel {
+    margin: 12px;
     padding: 52px clamp(38px, 5vw, 66px);
   }
   .auth-mobile-lock {
@@ -9778,6 +9947,51 @@ button {
     min-width: 0;
   }
 
+  .settings-payment-manager-modal {
+    width: min(1120px, calc(100vw - 72px));
+    max-width: calc(100vw - 72px) !important;
+    max-height: min(860px, calc(100dvh - 72px));
+  }
+
+  .settings-payment-manager-modal .settings-manager-content {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.42fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .settings-payment-manager-modal .settings-payment-sidebar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .settings-payment-manager-modal .settings-account-list {
+    grid-column: 2;
+    align-content: start;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .settings-payment-manager-modal .settings-payment-summary {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .settings-payment-manager-modal .settings-payment-toolbar,
+  .settings-payment-manager-modal .settings-create-account {
+    grid-column: auto;
+  }
+
+  .settings-payment-manager-modal .settings-account-card {
+    min-height: 72px;
+    border-radius: 18px;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--mc-green) 4%, transparent), transparent),
+      color-mix(in srgb, var(--mc-surface) 82%, transparent);
+    padding: 14px;
+  }
+
   .settings-family-manager-modal .settings-family-member-card {
     min-height: 78px;
     border-radius: 18px;
@@ -10132,6 +10346,33 @@ button {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .settings-payment-manager-modal {
+    width: min(1220px, calc(100vw - 96px));
+    max-width: calc(100vw - 96px) !important;
+    max-height: min(860px, calc(100dvh - 96px));
+  }
+
+  .settings-payment-manager-modal .settings-manager-content {
+    grid-template-columns: minmax(320px, 0.34fr) minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .settings-payment-manager-modal .settings-account-list {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .settings-payment-manager-modal .settings-payment-sidebar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .settings-payment-manager-modal .settings-payment-summary,
+  .settings-payment-manager-modal .settings-payment-toolbar,
+  .settings-payment-manager-modal .settings-create-account {
+    grid-column: auto;
+  }
+
   .settings-account-list {
     gap: 9px;
   }
@@ -10374,6 +10615,30 @@ button {
     font-size: 19px;
   }
 
+  .settings-payment-manager-modal {
+    width: 100%;
+    max-width: 100% !important;
+    max-height: 92dvh;
+    background: var(--mc-bg) !important;
+    padding: 0 !important;
+  }
+
+  .settings-payment-manager-modal > header {
+    border-radius: 14px 14px 0 0;
+    padding: 14px 42px 14px 16px;
+  }
+
+  .settings-payment-manager-modal h2 {
+    font-size: 19px;
+  }
+
+  .settings-payment-manager-modal .settings-manager-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px calc(14px + env(safe-area-inset-bottom));
+  }
+
   .settings-family-manager-modal .settings-manager-content {
     display: flex;
     flex-direction: column;
@@ -10466,7 +10731,53 @@ button {
       linear-gradient(180deg, color-mix(in srgb, var(--mc-blue) 5%, transparent), transparent),
       color-mix(in srgb, var(--mc-surface) 48%, transparent);
     box-shadow: none;
-    padding: 11px;
+    padding: 9px;
+  }
+
+  .settings-create-account {
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .settings-create-title {
+    gap: 7px;
+    font-size: 12px;
+  }
+
+  .settings-create-title > span {
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
+  }
+
+  .settings-create-title small {
+    display: none;
+  }
+
+  .account-editor {
+    gap: 8px;
+    margin: 0;
+  }
+
+  .account-editor-fields {
+    gap: 7px;
+  }
+
+  .account-editor-fields .field,
+  .settings-create-account .field {
+    min-height: 36px;
+  }
+
+  .account-type-picker,
+  .chip-grid {
+    gap: 5px;
+  }
+
+  .account-type-picker .chip,
+  .chip-grid .chip {
+    min-height: 28px;
+    padding: 5px 7px;
+    font-size: 9px;
   }
 
   .settings-invite-row {
@@ -10476,7 +10787,8 @@ button {
   .settings-payment-summary {
     display: flex;
     overflow-x: auto;
-    padding-bottom: 2px;
+    gap: 6px;
+    padding-bottom: 0;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
   }
@@ -10486,22 +10798,44 @@ button {
   }
 
   .settings-payment-summary-card {
-    flex: 0 0 112px;
+    flex: 0 0 auto;
+    min-width: 86px;
     scroll-snap-align: start;
     border-color: color-mix(in srgb, var(--mc-line) 58%, transparent);
     background: color-mix(in srgb, var(--mc-surface) 44%, transparent);
-    padding: 9px;
+    gap: 6px;
+    padding: 7px 8px;
+  }
+
+  .settings-payment-summary-card > span {
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
+  }
+
+  .settings-payment-summary-card strong {
+    font-size: 14px;
+  }
+
+  .settings-payment-summary-card small {
+    font-size: 8px;
   }
 
   .settings-payment-toolbar {
-    align-items: stretch;
+    align-items: center;
     border-color: color-mix(in srgb, var(--mc-line) 56%, transparent);
     background: color-mix(in srgb, var(--mc-blue) 4%, transparent);
-    padding: 9px;
+    padding: 8px;
+  }
+
+  .settings-payment-toolbar > span {
+    display: none;
   }
 
   .settings-payment-toolbar .settings-add-button {
     justify-content: center;
+    width: 100%;
+    min-height: 34px;
   }
 
   .settings-account-form-grid,
@@ -10511,7 +10845,129 @@ button {
   }
 
   .settings-account-card {
+    grid-template-columns: minmax(0, 1fr);
     align-items: flex-start;
+    gap: 8px;
+    padding: 9px;
+  }
+
+  .settings-payment-manager-modal .settings-account-list {
+    display: flex;
+    gap: 8px;
+    margin-inline: -12px;
+    overflow-x: auto;
+    padding: 2px 12px 8px;
+    scroll-padding-inline: 12px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .settings-payment-manager-modal .settings-account-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-payment-manager-modal .settings-account-card {
+    flex: 0 0 132px;
+    min-height: 116px;
+    display: grid;
+    align-content: space-between;
+    border-radius: 16px;
+    padding: 10px;
+    scroll-snap-align: start;
+  }
+
+  .settings-payment-manager-modal .settings-account-card-main {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .settings-payment-manager-modal .settings-account-card-main > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .settings-account-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
+  }
+
+  .settings-account-card strong {
+    font-size: 12px;
+  }
+
+  .settings-account-card small {
+    font-size: 8px;
+  }
+
+  .settings-payment-manager-modal .settings-account-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 32px;
+    gap: 5px;
+  }
+
+  .settings-payment-manager-modal .account-edit-button,
+  .settings-payment-manager-modal .account-delete-button {
+    min-height: 28px;
+    justify-content: center;
+    border-radius: 9px;
+    padding: 5px 6px;
+    font-size: 0;
+  }
+
+  .settings-payment-manager-modal .account-edit-button {
+    font-size: 9px;
+  }
+
+  .settings-payment-manager-modal .account-delete-button svg,
+  .settings-payment-manager-modal .account-edit-button svg {
+    margin: 0;
+  }
+
+  .settings-payment-manager-modal .settings-account-card .account-editor {
+    position: static;
+    width: 100%;
+    max-height: none;
+    overflow: auto;
+    border-color: color-mix(in srgb, var(--mc-blue) 22%, var(--mc-line));
+    background: var(--mc-bg);
+    box-shadow: none;
+  }
+
+  .settings-payment-manager-modal .settings-account-card:has(.account-editor) {
+    flex-basis: min(340px, calc(100vw - 32px));
+  }
+
+  .settings-payment-hero {
+    align-items: center;
+    gap: 9px;
+    border-color: color-mix(in srgb, var(--mc-line) 54%, transparent);
+    border-radius: 15px;
+    background: color-mix(in srgb, var(--mc-green) 5%, transparent);
+    padding: 9px;
+  }
+
+  .settings-payment-hero-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 11px;
+  }
+
+  .settings-payment-hero small,
+  .settings-payment-hero p {
+    display: none;
+  }
+
+  .settings-payment-hero strong {
+    margin-top: 0;
+    font-size: 13px;
+    letter-spacing: -0.02em;
+  }
+
+  .settings-payment-sidebar {
+    gap: 7px;
   }
 
   .settings-account-actions {
@@ -10528,5 +10984,124 @@ button {
   .account-editor-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 899px) {
+  input,
+  textarea,
+  select,
+  [contenteditable="true"],
+  [role="combobox"] {
+    font-size: 16px !important;
+  }
+
+  .transaction-editor-modal {
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-inline: auto !important;
+    transform: none !important;
+  }
+}
+
+@media (max-width: 899px) {
+  .auth-shell {
+    width: min(100%, calc(100vw - 18px));
+    min-height: auto;
+    grid-template-columns: 1fr;
+    border-radius: 28px;
+  }
+
+  .auth-brand-panel {
+    gap: 16px;
+    padding: 24px 20px 12px;
+  }
+
+  .auth-pitch {
+    margin-top: 4px;
+  }
+
+  .auth-pitch h1 {
+    max-width: 340px;
+    font-size: clamp(27px, 8vw, 36px);
+  }
+
+  .auth-pitch p {
+    max-width: 340px;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+
+  .auth-form-panel {
+    margin: 8px;
+    border-radius: 22px;
+    padding: 20px 16px 18px;
+  }
+
+  .auth-mode-switch {
+    margin-top: 18px;
+  }
+
+  .auth-form {
+    margin-top: 16px;
+  }
+
+  .auth-alternate {
+    margin-top: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-shell {
+    width: calc(100vw - 12px);
+    border-radius: 24px;
+  }
+
+  .auth-brand-panel {
+    padding: 20px 16px 8px;
+  }
+
+  .auth-brand .brand-logo-copy span,
+  .auth-pitch p {
+    display: none;
+  }
+
+  .auth-form-panel {
+    margin: 6px;
+    padding: 18px 14px 16px;
+  }
+
+  .auth-form-heading h2 {
+    font-size: 22px;
+  }
+
+  .auth-field-group input,
+  .auth-password-field {
+    min-height: 46px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .auth-shell {
+    width: min(1320px, calc(100vw - 12vw));
+    min-height: min(820px, calc(100dvh - 8vh));
+    grid-template-columns: minmax(0, 1.25fr) minmax(430px, 0.75fr);
+  }
+
+  .auth-brand-panel {
+    padding: 64px 70px;
+  }
+
+  .auth-form-panel {
+    margin: 14px;
+    padding: 62px 76px;
+  }
+
+  .auth-benefits {
+    max-width: 520px;
   }
 }

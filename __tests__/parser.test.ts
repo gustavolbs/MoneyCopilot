@@ -51,11 +51,11 @@ const context = {
 };
 
 describe('parseTransactionInput', () => {
-  it('parses Outback - 250 reais as expense restaurant', () => {
+  it('parses Outback - 250 reais as eating out or delivery expense', () => {
     const [parsed] = parseTransactionInput('Outback - 250 reais', context);
     expect(parsed.amount).toBe(250);
     expect(parsed.type).toBe('expense');
-    expect(parsed.category_id).toBe('cat_expense_restaurants');
+    expect(parsed.category_id).toBe('cat_expense_food');
     expect(parsed.description).toBe('Outback');
   });
 
@@ -63,7 +63,7 @@ describe('parseTransactionInput', () => {
     const [parsed] = parseTransactionInput('Outback 250', context);
     expect(parsed.amount).toBe(250);
     expect(parsed.type).toBe('expense');
-    expect(parsed.category_name).toBe('Restaurantes');
+    expect(parsed.category_name).toBe('Comer fora/Delivery');
   });
 
   it('parses Salario +40.000 reais as income', () => {

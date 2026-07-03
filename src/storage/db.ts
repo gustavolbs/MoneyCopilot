@@ -30,6 +30,8 @@ export type LocalDbState = {
 };
 
 const storageKey = 'moneycopilot-local-db-v1';
+const mergedRestaurantCategoryId = 'cat_expense_restaurants';
+const foodCategoryId = 'cat_expense_food';
 
 function initialState(): LocalDbState {
   return {
@@ -50,12 +52,14 @@ function initialState(): LocalDbState {
 
 function normalize(state: LocalDbState): LocalDbState {
   const defaultsById = new Map(defaultCategories.map((category) => [category.id, category]));
-  const categories = state.categories.map((category) => {
-    const defaultCategory = defaultsById.get(category.id);
-    return defaultCategory && category.is_default
-      ? { ...category, name: defaultCategory.name, color: defaultCategory.color, icon: defaultCategory.icon }
-      : category;
-  });
+  const categories = state.categories
+    .filter((category) => category.id !== mergedRestaurantCategoryId)
+    .map((category) => {
+      const defaultCategory = defaultsById.get(category.id);
+      return defaultCategory && category.is_default
+        ? { ...category, name: defaultCategory.name, color: defaultCategory.color, icon: defaultCategory.icon }
+        : category;
+    });
   const categoryIds = new Set(categories.map((category) => category.id));
   for (const category of defaultCategories) {
     if (!categoryIds.has(category.id)) categories.push(category);
@@ -78,12 +82,38 @@ function normalize(state: LocalDbState): LocalDbState {
   const creditCardIds = new Set(accounts.filter((account) => account.type === 'credit_card').map((account) => account.id));
   const transactions = (state.transactions ?? []).map((transaction) => ({
     ...transaction,
+    category_id: transaction.category_id === mergedRestaurantCategoryId ? foodCategoryId : transaction.category_id,
     payment_method:
       transaction.type === 'expense'
         ? transaction.payment_method ?? (transaction.account_id && creditCardIds.has(transaction.account_id) ? 'credit_card' : 'cash')
         : null,
   }));
-  return { ...initialState(), ...state, households, accounts, transactions, categories };
+  const categorization_rules = (state.categorization_rules ?? []).map((rule) => ({
+    ...rule,
+    category_id: rule.category_id === mergedRestaurantCategoryId ? foodCategoryId : rule.category_id,
+  }));
+  const recurrences = (state.recurrences ?? []).map((recurrence) => ({
+    ...recurrence,
+    category_id: recurrence.category_id === mergedRestaurantCategoryId ? foodCategoryId : recurrence.category_id,
+  }));
+  const budgetMap = new Map<string, Budget>();
+  for (const budget of state.budgets ?? []) {
+    const category_id = budget.category_id === mergedRestaurantCategoryId ? foodCategoryId : budget.category_id;
+    const key = `${budget.household_id}:${category_id}:${budget.month}`;
+    const existing = budgetMap.get(key);
+    if (!existing) {
+      budgetMap.set(key, { ...budget, category_id });
+      continue;
+    }
+    budgetMap.set(key, {
+      ...existing,
+      amount: Number(existing.amount) + Number(budget.amount),
+      updated_at: existing.updated_at > budget.updated_at ? existing.updated_at : budget.updated_at,
+      deleted_at: existing.deleted_at && budget.deleted_at ? existing.deleted_at : null,
+    });
+  }
+  const budgets = Array.from(budgetMap.values());
+  return { ...initialState(), ...state, households, accounts, transactions, categories, categorization_rules, budgets, recurrences };
 }
 
 export async function initLocalDb() {

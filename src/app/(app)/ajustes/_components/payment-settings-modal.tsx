@@ -3,6 +3,7 @@
 import {
   Building2,
   CreditCard,
+  Landmark,
   Pencil,
   PiggyBank,
   Plus,
@@ -98,139 +99,184 @@ export function PaymentSettingsModal({
 
   return (
     <SettingsManagerModal
+      className="settings-payment-manager-modal"
       title="Patrimônio e pagamentos"
       subtitle={`${accounts.length} conta(s) · ${cardCount} cartão(ões)`}
       onClose={onClose}
     >
-      <section className="settings-payment-summary">
-        <PaymentSummaryCard
-          color={colors.blue}
-          icon={<Building2 size={17} />}
-          label="Contas"
-          value={liquidAccountCount}
-        />
-        <PaymentSummaryCard
-          color={colors.green}
-          icon={<PiggyBank size={17} />}
-          label="Reservas"
-          value={reserveCount}
-        />
-        <PaymentSummaryCard
-          color={colors.gold}
-          icon={<CreditCard size={17} />}
-          label="Cartões"
-          value={cardCount}
-        />
-      </section>
+      <div className="settings-payment-sidebar">
+        <section className="settings-payment-hero">
+          <span className="settings-payment-hero-icon">
+            <Landmark size={20} />
+          </span>
+          <div>
+            <small>Fontes de saldo</small>
+            <strong>{accounts.length} conta(s) cadastrada(s)</strong>
+            <p>
+              Organize contas correntes, carteira, cartões, reservas e outros
+              saldos usados nos lançamentos.
+            </p>
+          </div>
+        </section>
 
-      <div className="settings-manager-toolbar settings-payment-toolbar">
-        <span style={{ color: colors.muted }}>
-          Edite saldos, tipos e vencimentos sem alterar os lançamentos já
-          registrados.
-        </span>
-        <ShadcnButton
-          type="button"
-          variant="ghost"
-          className="settings-add-button"
-          onClick={() => onSetShowAccountForm((visible) => !visible)}
-          style={{ backgroundColor: `${colors.blue}12`, color: colors.blue }}
-        >
-          <Plus size={15} /> Nova conta
-        </ShadcnButton>
+        <section className="settings-payment-summary">
+          <PaymentSummaryCard
+            color={colors.blue}
+            icon={<Building2 size={17} />}
+            label="Contas"
+            value={liquidAccountCount}
+          />
+          <PaymentSummaryCard
+            color={colors.green}
+            icon={<PiggyBank size={17} />}
+            label="Reservas"
+            value={reserveCount}
+          />
+          <PaymentSummaryCard
+            color={colors.gold}
+            icon={<CreditCard size={17} />}
+            label="Cartões"
+            value={cardCount}
+          />
+        </section>
+
+        <div className="settings-manager-toolbar settings-payment-toolbar">
+          <span style={{ color: colors.muted }}>
+            Edite saldos, tipos e vencimentos sem alterar os lançamentos já
+            registrados.
+          </span>
+          <ShadcnButton
+            type="button"
+            variant="ghost"
+            className="settings-add-button"
+            onClick={() => onSetShowAccountForm((visible) => !visible)}
+            style={{ backgroundColor: `${colors.blue}12`, color: colors.blue }}
+          >
+            <Plus size={15} /> Nova conta
+          </ShadcnButton>
+        </div>
+
+        {showAccountForm ? (
+          <CreateAccountForm
+            accountName={accountName}
+            accountType={accountType}
+            accountTypes={accountTypes}
+            cardBestPurchaseDay={cardBestPurchaseDay}
+            cardDueDay={cardDueDay}
+            onAddAccount={onAddAccount}
+            onSetAccountName={onSetAccountName}
+            onSetAccountType={onSetAccountType}
+            onSetCardBestPurchaseDay={onSetCardBestPurchaseDay}
+            onSetCardDueDay={onSetCardDueDay}
+            onSetShowAccountForm={onSetShowAccountForm}
+          />
+        ) : null}
       </div>
-
-      {showAccountForm ? (
-        <CreateAccountForm
-          accountName={accountName}
-          accountType={accountType}
-          accountTypes={accountTypes}
-          cardBestPurchaseDay={cardBestPurchaseDay}
-          cardDueDay={cardDueDay}
-          onAddAccount={onAddAccount}
-          onSetAccountName={onSetAccountName}
-          onSetAccountType={onSetAccountType}
-          onSetCardBestPurchaseDay={onSetCardBestPurchaseDay}
-          onSetCardDueDay={onSetCardDueDay}
-          onSetShowAccountForm={onSetShowAccountForm}
-        />
-      ) : null}
 
       <section className="settings-account-list" aria-label="Contas cadastradas">
         {accounts.map((account) => (
-          <article className="settings-account-card" key={account.id}>
-            <div className="settings-account-card-main">
-              <span
-                className="settings-account-icon"
-                style={{
-                  backgroundColor: `${getAccountTone(account.type, colors)}18`,
-                  color: getAccountTone(account.type, colors),
-                }}
-              >
-                {getAccountIcon(account.type)}
-              </span>
-              <div>
-                <strong>{account.name}</strong>
-                <small>{formatAccountSubtitle(account)}</small>
-              </div>
-            </div>
-            <div className="settings-account-actions">
-              <ShadcnButton
-                type="button"
-                variant="ghost"
-                className="account-edit-button"
-                onClick={() =>
-                  onSetEditingAccountId(
-                    editingAccountId === account.id ? null : account.id,
-                  )
-                }
-                style={{
-                  backgroundColor: `${colors.blue}12`,
-                  color: colors.blue,
-                }}
-              >
-                <Pencil size={14} /> Editar
-              </ShadcnButton>
-              <SettingsConfirmAction
-                title={`Excluir a conta “${account.name}”?`}
-                description="As transações já registradas serão preservadas."
-                onConfirm={() => onDeleteAccount(account)}
-                trigger={
-                  <ShadcnButton
-                    type="button"
-                    variant="ghost"
-                    className="account-delete-button"
-                    disabled={deletingAccountId === account.id}
-                    style={{
-                      backgroundColor: `${colors.red}12`,
-                      color: colors.red,
-                    }}
-                    aria-label={`Excluir conta ${account.name}`}
-                  >
-                    {deletingAccountId === account.id ? (
-                      <Spinner />
-                    ) : (
-                      <Trash2 size={14} />
-                    )}{" "}
-                    Excluir
-                  </ShadcnButton>
-                }
-              />
-            </div>
-            {editingAccountId === account.id ? (
-              <AccountEditor
-                account={account}
-                accountTypes={accountTypes}
-                onCancel={() => onSetEditingAccountId(null)}
-                onSave={async (patch) => {
-                  await onEditAccount(account, patch);
-                  onSetEditingAccountId(null);
-                }}
-              />
-            ) : null}
-          </article>
+          <AccountRow
+            key={account.id}
+            account={account}
+            accountTypes={accountTypes}
+            deletingAccountId={deletingAccountId}
+            editingAccountId={editingAccountId}
+            onDeleteAccount={onDeleteAccount}
+            onEditAccount={onEditAccount}
+            onSetEditingAccountId={onSetEditingAccountId}
+          />
         ))}
       </section>
     </SettingsManagerModal>
+  );
+}
+
+function AccountRow({
+  account,
+  accountTypes,
+  deletingAccountId,
+  editingAccountId,
+  onDeleteAccount,
+  onEditAccount,
+  onSetEditingAccountId,
+}: {
+  account: Account;
+  accountTypes: AccountTypeOption[];
+  deletingAccountId: string | null;
+  editingAccountId: string | null;
+  onDeleteAccount: (account: Account) => Promise<void>;
+  onEditAccount: PaymentSettingsModalProps["onEditAccount"];
+  onSetEditingAccountId: (value: string | null) => void;
+}) {
+  const { colors } = useTheme();
+  const tone = getAccountTone(account.type, colors);
+
+  return (
+    <article className="settings-account-card">
+      <div className="settings-account-card-main">
+        <span
+          className="settings-account-icon"
+          style={{
+            backgroundColor: `${tone}18`,
+            color: tone,
+          }}
+        >
+          {getAccountIcon(account.type)}
+        </span>
+        <div>
+          <strong>{account.name}</strong>
+          <small>{formatAccountSubtitle(account)}</small>
+        </div>
+      </div>
+      <div className="settings-account-actions">
+        <ShadcnButton
+          type="button"
+          variant="ghost"
+          className="account-edit-button"
+          onClick={() =>
+            onSetEditingAccountId(editingAccountId === account.id ? null : account.id)
+          }
+          style={{
+            backgroundColor: `${colors.blue}12`,
+            color: colors.blue,
+          }}
+        >
+          <Pencil size={14} /> Editar
+        </ShadcnButton>
+        <SettingsConfirmAction
+          title={`Excluir a conta “${account.name}”?`}
+          description="As transações já registradas serão preservadas."
+          onConfirm={() => onDeleteAccount(account)}
+          trigger={
+            <ShadcnButton
+              type="button"
+              variant="ghost"
+              className="account-delete-button"
+              disabled={deletingAccountId === account.id}
+              style={{
+                backgroundColor: `${colors.red}12`,
+                color: colors.red,
+              }}
+              aria-label={`Excluir conta ${account.name}`}
+            >
+              {deletingAccountId === account.id ? <Spinner /> : <Trash2 size={14} />}{" "}
+              Excluir
+            </ShadcnButton>
+          }
+        />
+      </div>
+      {editingAccountId === account.id ? (
+        <AccountEditor
+          account={account}
+          accountTypes={accountTypes}
+          onCancel={() => onSetEditingAccountId(null)}
+          onSave={async (patch) => {
+            await onEditAccount(account, patch);
+            onSetEditingAccountId(null);
+          }}
+        />
+      ) : null}
+    </article>
   );
 }
 

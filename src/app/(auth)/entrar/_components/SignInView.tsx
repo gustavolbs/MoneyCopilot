@@ -1,10 +1,9 @@
 'use client';
 
-import { ChartNoAxesCombined, Check, Eye, EyeOff, LockKeyhole, ShieldCheck, WalletCards } from 'lucide-react';
+import { Check, Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 
-import { BrandLogo } from '@/components/BrandLogo';
 import { Button, Screen } from '@/components/ui';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button as ShadcnButton } from '@/components/ui/button';
@@ -12,12 +11,12 @@ import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { friendlyAuthError } from '@/lib/authErrors';
 import { isSupabaseConfigured } from '@/lib/env';
 import { useAppStore } from '@/store/appStore';
+import { AuthBrandPanel } from './AuthBrandPanel';
+import { AuthMode, AuthModeSwitch } from './AuthModeSwitch';
 
-type AuthMode = 'login' | 'signup';
 type Feedback = { tone: 'error' | 'success'; message: string } | null;
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -90,19 +89,7 @@ export function SignInView() {
   return (
     <Screen>
       <div className="auth-shell">
-        <section className="auth-brand-panel" aria-label="MoneyCopilot">
-          <BrandLogo size={48} tagline="Seu dinheiro, com direção." className="auth-brand" />
-          <div className="auth-pitch">
-            <span className="auth-eyebrow">Finanças sem ruído</span>
-            <h1>Decisões melhores começam com uma visão clara.</h1>
-            <p>Organize contas, acompanhe gastos e planeje o futuro da sua família em um só lugar.</p>
-          </div>
-          <div className="auth-benefits">
-            <div><span><ChartNoAxesCombined size={18} /></span><p><strong>Visão completa</strong><small>Receitas, despesas e patrimônio organizados.</small></p></div>
-            <div><span><WalletCards size={18} /></span><p><strong>Controle compartilhado</strong><small>Dados financeiros da família sempre alinhados.</small></p></div>
-            <div><span><ShieldCheck size={18} /></span><p><strong>Dados protegidos</strong><small>Acesso privado e sincronização segura.</small></p></div>
-          </div>
-        </section>
+        <AuthBrandPanel />
 
         <section className="auth-form-panel">
           <div className="auth-form-heading">
@@ -111,12 +98,7 @@ export function SignInView() {
             <p>{mode === 'signup' ? 'Comece a organizar sua vida financeira.' : 'Entre para acessar seu painel financeiro.'}</p>
           </div>
 
-          <Tabs value={mode} onValueChange={(value) => changeMode(value as AuthMode)} className="contents">
-            <TabsList className="auth-mode-switch" aria-label="Tipo de acesso">
-              <TabsTrigger value="login" className={mode === 'login' ? 'active' : ''}>Entrar</TabsTrigger>
-              <TabsTrigger value="signup" className={mode === 'signup' ? 'active' : ''}>Criar conta</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <AuthModeSwitch value={mode} onChange={changeMode} />
 
           <form className="auth-form" onSubmit={(event) => void submit(event)} noValidate>
             {mode === 'signup' ? (
