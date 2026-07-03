@@ -296,13 +296,14 @@ export function CopilotView() {
             </div>
           </div>
 
-          <div className="copilot-context-card">
-            <span><Bot size={16} /></span>
-            <div>
-              <strong>Contexto carregado</strong>
-              <p>{snapshot.summary}</p>
-            </div>
-          </div>
+          <details className="copilot-context-card">
+            <summary>
+              <span><Bot size={14} /></span>
+              <strong>Contexto financeiro carregado</strong>
+              <small>ver resumo</small>
+            </summary>
+            <p>{snapshot.summary}</p>
+          </details>
 
           {activeChat?.messages.length ? (
             <div className="copilot-messages" data-swipe-ignore>

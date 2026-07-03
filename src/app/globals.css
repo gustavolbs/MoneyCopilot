@@ -3444,36 +3444,58 @@ button {
 }
 
 .copilot-context-card {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 10px;
   border: 1px solid color-mix(in srgb, var(--mc-blue) 18%, transparent);
-  border-radius: 18px;
+  border-radius: 16px;
   background: color-mix(in srgb, var(--mc-blue) 6%, transparent);
   margin-inline: 16px;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
-.copilot-context-card > span {
-  width: 34px;
-  height: 34px;
+.copilot-context-card summary {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  color: var(--mc-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.copilot-context-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.copilot-context-card summary > span {
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--mc-blue) 16%, transparent);
   color: var(--mc-blue);
 }
 
-.copilot-context-card strong {
+.copilot-context-card summary strong {
+  overflow: hidden;
   color: var(--mc-ink);
-  font-size: 13px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copilot-context-card summary small {
+  color: var(--mc-muted);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .copilot-context-card p {
-  margin: 4px 0 0;
+  margin: 8px 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--mc-line) 58%, transparent);
   color: var(--mc-muted);
   font-size: 10.5px;
   line-height: 1.45;
+  padding-top: 8px;
 }
 
 .copilot-messages {
@@ -3565,17 +3587,29 @@ button {
   line-height: 1.65;
 }
 
+.copilot-markdown h1,
+.copilot-markdown h2,
 .copilot-markdown h3,
 .copilot-markdown h4,
-.copilot-markdown h5 {
+.copilot-markdown h5,
+.copilot-markdown h6 {
   margin: 4px 0 0;
   color: var(--mc-ink);
   font-weight: 850;
   letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.copilot-markdown h1 {
+  font-size: 21px;
+}
+
+.copilot-markdown h2 {
+  font-size: 19px;
 }
 
 .copilot-markdown h3 {
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .copilot-markdown h4 {
@@ -3586,8 +3620,25 @@ button {
   font-size: 13px;
 }
 
+.copilot-markdown h6 {
+  color: color-mix(in srgb, var(--mc-ink) 78%, var(--mc-muted));
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .copilot-markdown p {
   margin: 0;
+}
+
+.copilot-markdown a {
+  color: color-mix(in srgb, var(--mc-blue) 82%, white);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.copilot-markdown a:hover {
+  text-decoration: underline;
 }
 
 .copilot-markdown ul {
@@ -3620,7 +3671,8 @@ button {
 }
 
 .copilot-markdown em {
-  color: var(--mc-muted);
+  color: color-mix(in srgb, var(--mc-ink) 78%, var(--mc-muted));
+  font-style: italic;
 }
 
 .copilot-markdown code {
@@ -3646,6 +3698,40 @@ button {
   background: transparent;
   color: var(--mc-ink);
   padding: 0;
+}
+
+.copilot-markdown-table-wrap {
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--mc-line) 72%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--mc-subtle) 64%, transparent);
+}
+
+.copilot-markdown table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.copilot-markdown th,
+.copilot-markdown td {
+  border-bottom: 1px solid color-mix(in srgb, var(--mc-line) 64%, transparent);
+  color: var(--mc-ink);
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.copilot-markdown th {
+  background: color-mix(in srgb, var(--mc-blue) 10%, transparent);
+  color: color-mix(in srgb, var(--mc-ink) 88%, var(--mc-blue));
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.copilot-markdown tr:last-child td {
+  border-bottom: 0;
 }
 
 .copilot-message-actions {
@@ -6953,15 +7039,19 @@ button {
   }
 
   .copilot-context-card {
-    grid-template-columns: 32px minmax(0, 1fr);
     margin-inline: 12px;
-    padding: 10px;
+    padding: 8px;
   }
 
-  .copilot-context-card > span {
-    width: 32px;
-    height: 32px;
-    border-radius: 11px;
+  .copilot-context-card summary {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .copilot-context-card summary > span {
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
   }
 
   .copilot-empty {
@@ -7010,8 +7100,24 @@ button {
     font-size: 13px;
   }
 
+  .copilot-markdown h1 {
+    font-size: 18px;
+  }
+
+  .copilot-markdown h2 {
+    font-size: 17px;
+  }
+
   .copilot-markdown h3 {
     font-size: 16px;
+  }
+
+  .copilot-markdown h4 {
+    font-size: 14px;
+  }
+
+  .copilot-markdown table {
+    min-width: 460px;
   }
 
   .copilot-error {
