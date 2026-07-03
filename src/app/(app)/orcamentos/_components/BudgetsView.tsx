@@ -8,7 +8,7 @@ import { Label, Screen, Title } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button as ShadcnButton } from "@/components/ui/button";
-import { budgetProgress, transactionBelongsToMonth } from "@/domain/finance";
+import { budgetProgress, effectiveBudgetsForMonth, plannedExpensesForMonth, transactionBelongsToMonth } from "@/domain/finance";
 import { formatCurrency, formatDate, formatMonthYear, monthKey } from "@/domain/normalize";
 import { useTheme } from "@/lib/theme";
 import { useAppStore } from "@/store/appStore";
@@ -18,6 +18,7 @@ import { BudgetLimitForm } from "./budget-limit-form";
 import { BudgetMonthSelector } from "./budget-month-selector";
 import { BudgetPeriodNotice } from "./budget-period-notice";
 import { MonthlyBudgetSummary } from "./monthly-budget-summary";
+import { PlannedExpensesSection } from "./planned-expenses-section";
 
 function shiftMonth(month: string, offset: number) {
   const [year, monthNumber] = month.split("-").map(Number);
@@ -26,13 +27,16 @@ function shiftMonth(month: string, offset: number) {
 
 export function BudgetsView() {
   const { colors } = useTheme();
-  const { categories, budgets, transactions, accounts, saveBudget } = useAppStore();
+  const { categories, budgets, transactions, accounts, recurrences, saveBudget } = useAppStore();
   const expenseCategories = categories.filter((category) => category.type === "expense");
   const currentMonth = monthKey();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const selectedMonthLabel = formatMonthYear(selectedMonth);
   const isCurrentMonth = selectedMonth === currentMonth;
-  const monthBudgets = budgets.filter((budget) => budget.month === selectedMonth && !budget.deleted_at);
+  const monthBudgets = useMemo(
+    () => effectiveBudgetsForMonth(budgets, selectedMonth),
+    [budgets, selectedMonth],
+  );
   const budgetItems = useMemo(() => monthBudgets.map((budget) => ({
     budget,
     category: categories.find((category) => category.id === budget.category_id),
@@ -51,6 +55,10 @@ export function BudgetsView() {
       over: budgetItems.filter((item) => item.progress.status === "over").length,
     };
   }, [budgetItems]);
+  const plannedExpenses = useMemo(
+    () => plannedExpensesForMonth(transactions, recurrences, selectedMonth, accounts),
+    [accounts, recurrences, selectedMonth, transactions],
+  );
   const unbudgetedCategories = expenseCategories.filter((category) => !monthBudgets.some((budget) => budget.category_id === category.id));
   const [amount, setAmount] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -118,6 +126,12 @@ export function BudgetsView() {
           warningCount={summary.warning}
         />
       </div>
+
+      <PlannedExpensesSection
+        monthLabel={selectedMonthLabel}
+        plannedBudget={summary.planned}
+        plannedExpenses={plannedExpenses}
+      />
 
       <ActiveBudgetsSection
         items={budgetItems}

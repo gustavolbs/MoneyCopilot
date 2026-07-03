@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { categoryEmoji } from "@/components/CategoryBadge";
+import { effectiveBudgetsForMonth } from "@/domain/finance";
 import { formatCurrency } from "@/domain/normalize";
 import type { Budget, Category } from "@/domain/types";
 import { cn } from "@/lib/utils";
@@ -32,9 +33,10 @@ export function PrincipaisCategorias({
   const items = categories.slice(0, limit);
   const maxAmount = Math.max(...categories.map((item) => item.amount), 1);
   const budgetsByCategory = new Map(
-    budgets
-      .filter((budget) => budget.month === month && !budget.deleted_at)
-      .map((budget) => [budget.category_id, budget]),
+    effectiveBudgetsForMonth(budgets, month).map((budget) => [
+      budget.category_id,
+      budget,
+    ]),
   );
 
   return (

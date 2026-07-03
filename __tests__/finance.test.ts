@@ -4,8 +4,10 @@ import { defaultCategories } from "@/domain/categories";
 import {
   budgetProgress,
   calculateAccountBalances,
+  effectiveBudgetsForMonth,
   isReserveMovement,
   metricsForMonth,
+  plannedExpensesForMonth,
   reserveMovementDelta,
   transactionEffectiveDate,
   transactionMonth,
@@ -238,6 +240,118 @@ describe("finance calculations", () => {
     const progress = budgetProgress([tx({ id: "1", amount: 850 })], budget);
     expect(progress.percent).toBe(0.85);
     expect(progress.status).toBe("warning");
+  });
+
+  it("inherits budgets from the latest previous month until a new value is set", () => {
+    const budgets: Budget[] = [
+      {
+        id: "food-june",
+        household_id: "h1",
+        category_id: "cat_expense_food",
+        month: "2026-06",
+        amount: 1000,
+        created_at: "",
+        updated_at: "2026-06-01T00:00:00.000Z",
+        deleted_at: null,
+      },
+      {
+        id: "food-august",
+        household_id: "h1",
+        category_id: "cat_expense_food",
+        month: "2026-08",
+        amount: 1200,
+        created_at: "",
+        updated_at: "2026-08-01T00:00:00.000Z",
+        deleted_at: null,
+      },
+      {
+        id: "market-deleted",
+        household_id: "h1",
+        category_id: "cat_expense_market",
+        month: "2026-05",
+        amount: 500,
+        created_at: "",
+        updated_at: "2026-05-01T00:00:00.000Z",
+        deleted_at: "2026-05-02T00:00:00.000Z",
+      },
+    ];
+
+    const july = effectiveBudgetsForMonth(budgets, "2026-07");
+    const september = effectiveBudgetsForMonth(budgets, "2026-09");
+
+    expect(july).toHaveLength(1);
+    expect(july[0]).toMatchObject({
+      id: "food-june",
+      category_id: "cat_expense_food",
+      month: "2026-07",
+      amount: 1000,
+    });
+    expect(september[0]).toMatchObject({
+      id: "food-august",
+      month: "2026-09",
+      amount: 1200,
+    });
+    expect(budgetProgress([tx({ id: "july-food", amount: 250, transaction_date: "2026-07-10" })], july[0]).spent).toBe(250);
+  });
+
+  it("combines scheduled transactions and upcoming recurrences as planned expenses", () => {
+    const planned = plannedExpensesForMonth(
+      [
+        tx({
+          id: "installment",
+          description: "Notebook 2/3",
+          amount: 400,
+          transaction_date: "2026-08-15",
+        }),
+        tx({
+          id: "materialized",
+          description: "Spotify",
+          amount: 21.9,
+          transaction_date: "2026-08-10",
+          recurrence_id: "spotify",
+        }),
+      ],
+      [
+        {
+          id: "spotify",
+          household_id: "h1",
+          account_id: null,
+          category_id: "cat_expense_subscriptions",
+          description: "Spotify",
+          amount: 21.9,
+          type: "expense",
+          frequency: "monthly",
+          day_of_month: 10,
+          next_due_date: "2026-08-10",
+          active: true,
+          created_at: "",
+          updated_at: "",
+          deleted_at: null,
+        },
+        {
+          id: "internet",
+          household_id: "h1",
+          account_id: null,
+          category_id: "cat_expense_bills",
+          description: "Internet",
+          amount: 120,
+          type: "expense",
+          frequency: "monthly",
+          day_of_month: 5,
+          next_due_date: "2026-08-05",
+          active: true,
+          created_at: "",
+          updated_at: "",
+          deleted_at: null,
+        },
+      ],
+      "2026-08",
+    );
+
+    expect(planned.transactionTotal).toBe(421.9);
+    expect(planned.recurrenceTotal).toBe(120);
+    expect(planned.total).toBe(541.9);
+    expect(planned.items.map((item) => item.description)).toEqual(["Internet", "Spotify", "Notebook 2/3"]);
   });
 
   it("moves credit-card purchases made on or after the best purchase day to next month", () => {

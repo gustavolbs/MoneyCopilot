@@ -16,8 +16,43 @@ export type DashboardMetrics = {
   largestExpenses: Transaction[];
 };
 
+export type PlannedExpenseItem = {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  source: "transaction" | "recurrence";
+};
+
+export type PlannedExpenses = {
+  items: PlannedExpenseItem[];
+  transactionTotal: number;
+  recurrenceTotal: number;
+  total: number;
+};
+
 const activeTransactions = (transactions: Transaction[]) =>
   transactions.filter((item) => !item.deleted_at);
+
+function addDaysToISODate(date: string, days: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  const target = new Date(year, month - 1, day + days);
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+}
+
+function addMonthsToISODate(date: string, months: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  const target = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, lastDay));
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+}
+
+function nextRecurrenceDate(date: string, frequency: Recurrence["frequency"]) {
+  if (frequency === "weekly") return addDaysToISODate(date, 7);
+  if (frequency === "yearly") return addMonthsToISODate(date, 12);
+  return addMonthsToISODate(date, 1);
+}
 
 function lastDayOfMonth(year: number, monthIndex: number) {
   return new Date(year, monthIndex + 1, 0).getDate();
@@ -242,6 +277,92 @@ export function calculateAccountBalances(
     account,
     balance: balances.get(account.id) ?? account.initial_balance,
   }));
+}
+
+export function effectiveBudgetsForMonth(
+  budgets: Budget[],
+  month: string,
+): Budget[] {
+  const latestByCategory = new Map<string, Budget>();
+
+  for (const budget of budgets.filter((item) => !item.deleted_at && item.month <= month)) {
+    const current = latestByCategory.get(budget.category_id);
+    if (
+      !current ||
+      budget.month > current.month ||
+      (budget.month === current.month && budget.updated_at > current.updated_at)
+    ) {
+      latestByCategory.set(budget.category_id, budget);
+    }
+  }
+
+  return [...latestByCategory.values()]
+    .map((budget) => ({ ...budget, month }))
+    .sort((a, b) => a.category_id.localeCompare(b.category_id));
+}
+
+export function plannedExpensesForMonth(
+  transactions: Transaction[],
+  recurrences: Recurrence[],
+  month: string,
+  accounts: Account[] = [],
+): PlannedExpenses {
+  const monthStart = `${month}-01`;
+  const monthEndDate = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0);
+  const monthEnd = `${month}-${String(monthEndDate.getDate()).padStart(2, "0")}`;
+  const transactionItems = activeTransactions(transactions)
+    .filter(
+      (transaction) =>
+        transaction.type === "expense" &&
+        !isReserveMovement(transaction, accounts) &&
+        !isPatrimonialAdjustment(transaction, accounts) &&
+        transactionBelongsToMonth(transaction, month, accounts),
+    )
+    .map((transaction): PlannedExpenseItem => ({
+      id: `transaction-${transaction.id}`,
+      description: transaction.description,
+      amount: transaction.amount,
+      date: transactionEffectiveDate(transaction, accounts),
+      source: "transaction",
+    }));
+
+  const recurringItems: PlannedExpenseItem[] = [];
+  for (const recurrence of recurrences.filter((item) => item.active && !item.deleted_at && item.type === "expense")) {
+    let dueDate = recurrence.next_due_date;
+    let guard = 0;
+    while (dueDate < monthStart && guard < 120) {
+      dueDate = nextRecurrenceDate(dueDate, recurrence.frequency);
+      guard += 1;
+    }
+    while (dueDate <= monthEnd && guard < 120) {
+      const alreadyMaterialized = activeTransactions(transactions).some(
+        (transaction) =>
+          transaction.recurrence_id === recurrence.id &&
+          transaction.transaction_date === dueDate,
+      );
+      if (!alreadyMaterialized) {
+        recurringItems.push({
+          id: `recurrence-${recurrence.id}-${dueDate}`,
+          description: recurrence.description,
+          amount: recurrence.amount,
+          date: dueDate,
+          source: "recurrence",
+        });
+      }
+      dueDate = nextRecurrenceDate(dueDate, recurrence.frequency);
+      guard += 1;
+    }
+  }
+
+  const items = [...transactionItems, ...recurringItems].sort((a, b) => a.date.localeCompare(b.date));
+  const transactionTotal = transactionItems.reduce((sum, item) => sum + item.amount, 0);
+  const recurrenceTotal = recurringItems.reduce((sum, item) => sum + item.amount, 0);
+  return {
+    items,
+    transactionTotal,
+    recurrenceTotal,
+    total: transactionTotal + recurrenceTotal,
+  };
 }
 
 export function budgetProgress(

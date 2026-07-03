@@ -1,4 +1,4 @@
-import { budgetProgress, metricsForMonth, transactionBelongsToMonth } from './finance';
+import { budgetProgress, effectiveBudgetsForMonth, metricsForMonth, transactionBelongsToMonth } from './finance';
 import { formatCurrency } from './normalize';
 import { Account, Budget, Category, Recurrence, Transaction } from './types';
 
@@ -108,7 +108,7 @@ export function generateInsights(params: {
     }
   }
 
-  for (const budget of budgets.filter((item) => !item.deleted_at && item.month === month)) {
+  for (const budget of effectiveBudgetsForMonth(budgets, month)) {
     const category = categories.find((item) => item.id === budget.category_id);
     const progress = budgetProgress(transactions, budget, accounts);
     if (progress.percent >= 0.8) {
