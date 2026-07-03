@@ -121,6 +121,11 @@ export function TransactionsList({
                   <span className="rounded bg-[var(--mc-subtle)] px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[var(--mc-muted)]">
                     {paymentLabel}
                   </span>
+                  {transaction.installment_total ? (
+                    <span className="rounded bg-[var(--mc-blue)]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[var(--mc-blue)]">
+                      {transaction.installment_index}/{transaction.installment_total}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               <div className="text-right">

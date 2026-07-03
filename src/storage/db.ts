@@ -87,6 +87,10 @@ function normalize(state: LocalDbState): LocalDbState {
       transaction.type === 'expense'
         ? transaction.payment_method ?? (transaction.account_id && creditCardIds.has(transaction.account_id) ? 'credit_card' : 'cash')
         : null,
+    installment_group_id: transaction.installment_group_id ?? null,
+    installment_index: transaction.installment_index ?? null,
+    installment_total: transaction.installment_total ?? null,
+    installment_base_description: transaction.installment_base_description ?? null,
   }));
   const categorization_rules = (state.categorization_rules ?? []).map((rule) => ({
     ...rule,

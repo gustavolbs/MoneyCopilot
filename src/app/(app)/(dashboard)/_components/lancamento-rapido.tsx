@@ -91,6 +91,9 @@ export function LancamentoRapido({ className }: LancamentoRapidoProps) {
                   compact
                 />
                 <span>{Math.round(item.confidence * 100)}%</span>
+                {item.installment_count && item.installment_amount ? (
+                  <span>{item.installment_count}x de {formatCurrency(item.installment_amount)}</span>
+                ) : null}
                 <span
                   className="font-semibold"
                   style={{

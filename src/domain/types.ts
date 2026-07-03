@@ -55,6 +55,10 @@ export type Transaction = {
   notes: string | null;
   source: 'manual' | 'imported' | 'recurring';
   recurrence_id: string | null;
+  installment_group_id: string | null;
+  installment_index: number | null;
+  installment_total: number | null;
+  installment_base_description: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -124,5 +128,7 @@ export type ParsedTransaction = {
   transaction_date: string;
   recurrence_hint: 'none' | 'probable_monthly' | 'probable_weekly';
   movement_kind: 'income' | 'payment' | 'transfer' | 'fixed_expense' | 'variable_expense';
+  installment_count: number | null;
+  installment_amount: number | null;
   confidence: number;
 };

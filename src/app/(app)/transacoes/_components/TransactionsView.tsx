@@ -31,6 +31,7 @@ export function TransactionsView() {
     accounts,
     editTransaction,
     deleteTransaction,
+    completeInstallments,
   } = useAppStore();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -237,6 +238,7 @@ export function TransactionsView() {
 
       <TransactionEditor
         transaction={editing}
+        transactions={transactions}
         categories={categories}
         accounts={accounts}
         onClose={() => setEditing(null)}
@@ -248,6 +250,11 @@ export function TransactionsView() {
         onDelete={async () => {
           if (!editing) return;
           await deleteTransaction(editing);
+          setEditing(null);
+        }}
+        onCompleteInstallments={async (currentIndex, total) => {
+          if (!editing) return;
+          await completeInstallments(editing, currentIndex, total);
           setEditing(null);
         }}
       />

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Account, Transaction } from "@/domain/types";
 import { readLocalDb, writeLocalDb } from "@/storage/db";
-import { createBalanceMovement, listAccounts, reconcileDeletedAccountReferences } from "@/storage/repository";
+import { completeInstallmentsFromTransaction, createBalanceMovement, createTransactionsFromInput, listAccounts, reconcileDeletedAccountReferences } from "@/storage/repository";
 
 function installLocalStorage() {
   const values = new Map<string, string>();
@@ -53,6 +53,10 @@ describe("account reconciliation", () => {
       notes: null,
       source: "manual",
       recurrence_id: null,
+      installment_group_id: null,
+      installment_index: null,
+      installment_total: null,
+      installment_base_description: null,
       created_at: "2026-06-18T00:00:00.000Z",
       updated_at: "2026-06-18T00:00:00.000Z",
       deleted_at: null,
@@ -121,5 +125,100 @@ describe("account movements", () => {
 
     expect(movement).toMatchObject({ account_id: wallet.id, type: "income" });
     expect((await listAccounts("household"))[0].type).toBe("cash");
+  });
+});
+
+describe("installment transactions", () => {
+  it("creates one transaction per installment from quick input", async () => {
+    installLocalStorage();
+    const state = await readLocalDb();
+    const card = account({ id: "card", name: "Cartão Itaú", type: "credit_card" });
+    state.accounts = [card];
+    await writeLocalDb(state);
+
+    const { transactions } = await createTransactionsFromInput({
+      input: "Notebook 1200 em 3x no Cartão Itaú",
+      householdId: "household",
+      userId: "user",
+      context: {
+        categories: state.categories,
+        rules: [],
+        accounts: [card],
+        today: new Date("2026-06-18T12:00:00.000Z"),
+      },
+    });
+
+    expect(transactions).toHaveLength(3);
+    expect(transactions.map((transaction) => transaction.amount)).toEqual([400, 400, 400]);
+    expect(transactions.map((transaction) => transaction.transaction_date)).toEqual(["2026-06-18", "2026-07-18", "2026-08-18"]);
+    expect(transactions.map((transaction) => transaction.description)).toEqual(["Notebook no Cartão Itaú 1/3", "Notebook no Cartão Itaú 2/3", "Notebook no Cartão Itaú 3/3"]);
+    expect(new Set(transactions.map((transaction) => transaction.installment_group_id)).size).toBe(1);
+    expect(transactions.every((transaction) => transaction.payment_method === "credit_card")).toBe(true);
+  });
+
+  it("completes remaining installments from an existing manual transaction", async () => {
+    installLocalStorage();
+    const state = await readLocalDb();
+    const previous: Transaction = {
+      id: "azul-4",
+      household_id: "household",
+      account_id: null,
+      transfer_account_id: null,
+      category_id: "cat_expense_travel",
+      created_by: "user",
+      description: "Azul Linhas aéreas 4/12",
+      normalized_description: "azul linhas aereas 4 12",
+      amount: 272.7,
+      type: "expense",
+      transaction_date: "2026-05-10",
+      payment_method: "credit_card",
+      notes: null,
+      source: "manual",
+      recurrence_id: null,
+      installment_group_id: null,
+      installment_index: null,
+      installment_total: null,
+      installment_base_description: null,
+      created_at: "2026-05-10T00:00:00.000Z",
+      updated_at: "2026-05-10T00:00:00.000Z",
+      deleted_at: null,
+    };
+    const transaction: Transaction = {
+      id: "azul",
+      household_id: "household",
+      account_id: null,
+      transfer_account_id: null,
+      category_id: "cat_expense_travel",
+      created_by: "user",
+      description: "Azul Linhas aéreas 5/12",
+      normalized_description: "azul linhas aereas 5 12",
+      amount: 272.7,
+      type: "expense",
+      transaction_date: "2026-06-10",
+      payment_method: "credit_card",
+      notes: null,
+      source: "manual",
+      recurrence_id: null,
+      installment_group_id: null,
+      installment_index: null,
+      installment_total: null,
+      installment_base_description: null,
+      created_at: "2026-06-10T00:00:00.000Z",
+      updated_at: "2026-06-10T00:00:00.000Z",
+      deleted_at: null,
+    };
+    state.transactions = [previous, transaction];
+    await writeLocalDb(state);
+
+    const created = await completeInstallmentsFromTransaction(transaction, 5, 12);
+    const db = await readLocalDb();
+    const groupId = db.transactions.find((item) => item.id === transaction.id)?.installment_group_id;
+    const group = db.transactions.filter((item) => item.installment_group_id === groupId);
+
+    expect(created).toHaveLength(7);
+    expect(group).toHaveLength(9);
+    expect(group.map((item) => item.installment_index)).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(group.map((item) => item.description)).toContain("Azul Linhas aéreas 12/12");
+    expect(group.find((item) => item.installment_index === 6)?.transaction_date).toBe("2026-07-10");
   });
 });

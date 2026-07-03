@@ -103,6 +103,23 @@ describe('parseTransactionInput', () => {
     expect(parsed.category_id).toBe('cat_expense_market');
   });
 
+  it('parses total installment purchases', () => {
+    const [parsed] = parseTransactionInput('Notebook 1200 em 12x no PicPay', context);
+    expect(parsed.amount).toBe(1200);
+    expect(parsed.installment_count).toBe(12);
+    expect(parsed.installment_amount).toBe(100);
+    expect(parsed.description).toBe('Notebook no PicPay');
+    expect(parsed.account_id).toBe('acc_picpay');
+  });
+
+  it('parses explicit installment amount purchases', () => {
+    const [parsed] = parseTransactionInput('Cadeira 12x de 100 reais', context);
+    expect(parsed.amount).toBe(1200);
+    expect(parsed.installment_count).toBe(12);
+    expect(parsed.installment_amount).toBe(100);
+    expect(parsed.description).toBe('Cadeira');
+  });
+
   it('categorizes veterinary expenses', () => {
     const [parsed] = parseTransactionInput('Consulta veterinaria 280', context);
     expect(parsed.type).toBe('expense');

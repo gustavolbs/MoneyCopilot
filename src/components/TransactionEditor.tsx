@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, CreditCard, ReceiptText, Tag, Trash2, Wallet, X } from 'lucide-react';
+import { CalendarDays, CreditCard, Layers3, ReceiptText, Tag, Trash2, Wallet, X } from 'lucide-react';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { CategoryBadge } from '@/components/CategoryBadge';
@@ -9,18 +9,20 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { transactionMonth } from '@/domain/finance';
-import { formatMonthYear } from '@/domain/normalize';
+import { formatCurrency, formatDate, formatMonthYear } from '@/domain/normalize';
 import { Account, Category, PaymentMethod, Transaction, TransactionType } from '@/domain/types';
 
 import { Button, ComboboxField, Field } from './ui';
 
 type Props = {
   transaction: Transaction | null;
+  transactions: Transaction[];
   categories: Category[];
   accounts: Account[];
   onClose: () => void;
   onSave: (patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'payment_method' | 'notes'>>) => Promise<void>;
   onDelete: () => Promise<void>;
+  onCompleteInstallments: (currentIndex: number, total: number) => Promise<void>;
 };
 
 const typeOptions: Array<{ label: string; value: TransactionType }> = [
@@ -40,22 +42,39 @@ const paymentOptions: Array<{ label: string; value: PaymentMethod; icon: typeof 
   { label: 'Cartão', value: 'credit_card', icon: CreditCard },
 ];
 
-export function TransactionEditor({ transaction, categories, accounts, onClose, onSave, onDelete }: Props) {
+const installmentPattern = /\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*$/;
+
+function inferInstallment(description: string) {
+  const match = description.match(installmentPattern);
+  if (!match) return { index: '', total: '' };
+  return { index: match[1], total: match[2] };
+}
+
+function installmentBase(description: string) {
+  return description.replace(installmentPattern, '').trim();
+}
+
+export function TransactionEditor({ transaction, transactions, categories, accounts, onClose, onSave, onDelete, onCompleteInstallments }: Props) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TransactionType>('expense');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [cardAccountId, setCardAccountId] = useState<string | null>(null);
+  const [installmentIndex, setInstallmentIndex] = useState('');
+  const [installmentTotal, setInstallmentTotal] = useState('');
 
   useEffect(() => {
     if (!transaction) return;
+    const inferred = inferInstallment(transaction.description);
     setDescription(transaction.description);
     setAmount(String(transaction.amount).replace('.', ','));
     setType(transaction.type);
     setCategoryId(transaction.category_id);
     setPaymentMethod(transaction.payment_method ?? 'cash');
     setCardAccountId(transaction.payment_method === 'credit_card' ? transaction.account_id : accounts.find((account) => account.type === 'credit_card')?.id ?? null);
+    setInstallmentIndex(String(transaction.installment_index ?? inferred.index));
+    setInstallmentTotal(String(transaction.installment_total ?? inferred.total));
   }, [accounts, transaction]);
 
   const availableCategories = useMemo(
@@ -73,6 +92,35 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
     !(type === 'expense' && paymentMethod === 'credit_card' && !cardAccountId);
   const creditCards = accounts.filter((account) => account.type === 'credit_card');
   const selectedCard = creditCards.find((account) => account.id === cardAccountId);
+  const currentInstallmentIndex = Number(installmentIndex);
+  const currentInstallmentTotal = Number(installmentTotal);
+  const canCompleteInstallments =
+    type === 'expense' &&
+    Number.isInteger(currentInstallmentIndex) &&
+    Number.isInteger(currentInstallmentTotal) &&
+    currentInstallmentTotal >= 2 &&
+    currentInstallmentIndex >= 1 &&
+    currentInstallmentIndex < currentInstallmentTotal;
+  const installmentGroup = (
+    transaction.installment_group_id
+      ? transactions.filter((item) => item.installment_group_id === transaction.installment_group_id && !item.deleted_at)
+      : currentInstallmentTotal
+        ? transactions.filter((item) => {
+            const inferred = inferInstallment(item.description);
+            return (
+              inferred.total === String(currentInstallmentTotal) &&
+              item.type === transaction.type &&
+              item.amount === transaction.amount &&
+              installmentBase(item.description).toLowerCase() === installmentBase(transaction.description).toLowerCase() &&
+              !item.deleted_at
+            );
+          })
+        : []
+  ).sort((a, b) => {
+    const left = a.installment_index ?? Number(inferInstallment(a.description).index || 0);
+    const right = b.installment_index ?? Number(inferInstallment(b.description).index || 0);
+    return left - right || a.transaction_date.localeCompare(b.transaction_date);
+  });
   const cashAccountId = accounts.find((account) => account.type === 'checking')?.id ?? accounts.find((account) => account.type === 'cash')?.id ?? transaction.account_id;
   const draftTransaction: Transaction = {
     ...transaction,
@@ -175,6 +223,51 @@ export function TransactionEditor({ transaction, categories, accounts, onClose, 
                   />
                 ))}
               </div>
+            </EditorSection>
+          ) : null}
+
+          {type === 'expense' ? (
+            <EditorSection icon={<Layers3 size={16} />} title="Parcelamento">
+              <div className="editor-installment-grid">
+                <div className="editor-field-label">
+                  <Label>Parcela atual</Label>
+                  <Field value={installmentIndex} onChangeText={setInstallmentIndex} placeholder="Ex: 5" keyboardType="numeric" />
+                </div>
+                <div className="editor-field-label">
+                  <Label>Total</Label>
+                  <Field value={installmentTotal} onChangeText={setInstallmentTotal} placeholder="Ex: 12" keyboardType="numeric" />
+                </div>
+              </div>
+              <p className="editor-installment-hint">
+                Para uma compra já cadastrada como “5/12”, informe 5 e 12 para criar as parcelas 6/12 em diante.
+              </p>
+              <ShadcnButton
+                type="button"
+                variant="outline"
+                className="editor-installment-action"
+                disabled={!canCompleteInstallments}
+                onClick={() => {
+                  if (!canCompleteInstallments) return;
+                  void onCompleteInstallments(currentInstallmentIndex, currentInstallmentTotal);
+                }}
+              >
+                Cadastrar parcelas restantes
+              </ShadcnButton>
+
+              {installmentGroup.length ? (
+                <div className="editor-installment-list" aria-label="Parcelas associadas">
+                  {installmentGroup.map((item) => {
+                    const inferred = inferInstallment(item.description);
+                    return (
+                      <div key={item.id} className="editor-installment-item">
+                        <span>{item.installment_index ?? inferred.index ?? '-'} / {item.installment_total ?? inferred.total ?? '-'}</span>
+                        <strong>{formatCurrency(item.amount)}</strong>
+                        <small>{formatDate(item.transaction_date)}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
             </EditorSection>
           ) : null}
         </div>

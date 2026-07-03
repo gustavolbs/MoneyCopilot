@@ -7,6 +7,8 @@ const fixedWords = ['aluguel', 'internet', 'assinatura', 'escola', 'academia', '
 const transferWords = ['transferencia', 'transferir', 'guardar', 'mover', 'resgatar', 'ted', 'doc', 'pix para mim', 'entre contas'];
 
 const amountRegex = /(?:^|\s)([+-]?\s*(?:r\$|rs)?\s*\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|[+-]?\s*(?:r\$|rs)?\s*\d+(?:,\d{1,2})?)(?:\s*(?:reais|real))?(?=\s|$)/i;
+const installmentCountRegex = /\b(?:em\s*)?(\d{1,2})\s*x\b/i;
+const installmentAmountRegex = /\b(\d{1,2})\s*x\s*(?:de\s*)?((?:r\$|rs)?\s*\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|(?:r\$|rs)?\s*\d+(?:,\d{1,2})?)(?:\s*(?:reais|real))?\b/i;
 
 function parseMoney(value: string): number {
   const cleaned = value
@@ -17,6 +19,36 @@ function parseMoney(value: string): number {
   const normalized = cleaned.includes(',') ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/\.(?=\d{3}(?:\D|$))/g, '');
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function cents(value: number) {
+  return Math.round(value * 100);
+}
+
+function fromCents(value: number) {
+  return value / 100;
+}
+
+function parseInstallments(raw: string, amount: number) {
+  const explicitInstallmentAmount = raw.match(installmentAmountRegex);
+  const count = Number(explicitInstallmentAmount?.[1] ?? raw.match(installmentCountRegex)?.[1] ?? 0);
+  if (!Number.isInteger(count) || count <= 1 || count > 48) return { count: null, amount: null, total: amount };
+
+  if (explicitInstallmentAmount?.[2]) {
+    const installmentAmount = parseMoney(explicitInstallmentAmount[2]);
+    if (!installmentAmount) return { count: null, amount: null, total: amount };
+    return {
+      count,
+      amount: fromCents(cents(installmentAmount)),
+      total: fromCents(cents(installmentAmount) * count),
+    };
+  }
+
+  return {
+    count,
+    amount: fromCents(Math.round(cents(amount) / count)),
+    total: amount,
+  };
 }
 
 function applyRules(normalized: string, type: TransactionType, rules: CategorizationRule[]) {
@@ -83,9 +115,12 @@ export function parseTransactionInput(input: string, context: UserRules): Parsed
       const amountMatch = raw.match(amountRegex);
       const amountToken = amountMatch?.[1] ?? '0';
       const amount = parseMoney(amountToken);
+      const installments = parseInstallments(raw, amount);
       const hasPlus = /\+\s*(?:r\$|rs)?\s*\d/i.test(raw);
       const hasMinus = /-\s*(?:r\$|rs)?\s*\d/i.test(raw);
       const description = raw
+        .replace(installmentAmountRegex, ' ')
+        .replace(installmentCountRegex, ' ')
         .replace(amountRegex, ' ')
         .replace(/\s+-\s+|\s+\+\s+/g, ' ')
         .replace(/\s+/g, ' ')
@@ -96,6 +131,8 @@ export function parseTransactionInput(input: string, context: UserRules): Parsed
       const type: TransactionType = probableTransfer ? 'transfer' : hasPlus || (!hasMinus && probableIncome) ? 'income' : 'expense';
       const categoryResult = suggestCategory(normalized, type, categories, rules);
       const accountHints = detectTransferAccountHints(description, context.accounts ?? [], normalized);
+      const accountId = type === 'transfer' ? accountHints.sourceAccountId : accountHints.sourceAccountId ?? accountHints.destinationAccountId;
+      const accountNameHint = type === 'transfer' ? accountHints.sourceName : accountHints.sourceName ?? accountHints.destinationName;
       const recurrence_hint = fixedWords.some((word) => normalized.includes(normalizeText(word))) ? 'probable_monthly' : 'none';
       const movement_kind =
         type === 'income'
@@ -112,17 +149,19 @@ export function parseTransactionInput(input: string, context: UserRules): Parsed
         raw,
         description: description || raw,
         normalized_description: normalized,
-        amount,
+        amount: installments.total,
         type,
         category_id: categoryResult.category?.id ?? null,
         category_name: categoryResult.category?.name ?? 'Outros',
-        account_id: accountHints.sourceAccountId,
-        transfer_account_id: accountHints.destinationAccountId,
-        account_name_hint: accountHints.sourceName,
-        transfer_account_name_hint: accountHints.destinationName,
+        account_id: accountId,
+        transfer_account_id: type === 'transfer' ? accountHints.destinationAccountId : null,
+        account_name_hint: accountNameHint,
+        transfer_account_name_hint: type === 'transfer' ? accountHints.destinationName : null,
         transaction_date: today,
         recurrence_hint,
         movement_kind,
+        installment_count: installments.count,
+        installment_amount: installments.amount,
         confidence: amount > 0 ? categoryResult.confidence : 0.2,
       };
     });

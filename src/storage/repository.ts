@@ -8,6 +8,21 @@ import { LocalDbState, readLocalDb, TableName, updateLocalDb } from './db';
 
 const now = () => new Date().toISOString();
 
+function addMonthsToISODate(date: string, months: number) {
+  const [year, month, day] = date.split('-').map(Number);
+  const target = new Date(year, month - 1 + months, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, lastDay));
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+}
+
+function splitInstallmentCents(total: number, count: number) {
+  const totalCents = Math.round(total * 100);
+  const base = Math.floor(totalCents / count);
+  const remainder = totalCents % count;
+  return Array.from({ length: count }, (_item, index) => (base + (index < remainder ? 1 : 0)) / 100);
+}
+
 export async function setAppState(key: string, value: string) {
   await updateLocalDb((db) => {
     db.app_state[key] = value;
@@ -276,31 +291,45 @@ async function saveParsedTransactions(parsed: ParsedTransaction[], householdId: 
         : null;
     const createdAt = now();
     const account = accountId ? (await listAccounts(householdId)).find((item) => item.id === accountId) : null;
-    const transaction: Transaction = {
-      id: createId(),
-      household_id: householdId,
-      account_id: accountId,
-      transfer_account_id: transferAccountId,
-      category_id: item.category_id,
-      created_by: userId,
-      description: item.description,
-      normalized_description: item.normalized_description,
-      amount: item.amount,
-      type: item.type,
-      transaction_date: item.transaction_date,
-      payment_method: item.type === 'expense' ? (account?.type === 'credit_card' ? 'credit_card' : 'cash') : null,
-      notes: null,
-      source: 'manual',
-      recurrence_id: null,
-      created_at: createdAt,
-      updated_at: createdAt,
-      deleted_at: null,
-    };
-    await updateLocalDb((db) => {
-      db.transactions.push(transaction);
+    const installmentCount = item.type === 'expense' ? item.installment_count : null;
+    const installmentAmounts = installmentCount ? splitInstallmentCents(item.amount, installmentCount) : [item.amount];
+    const installmentGroupId = installmentCount ? createId() : null;
+    const paymentMethod = item.type === 'expense' ? (account?.type === 'credit_card' ? 'credit_card' : 'cash') : null;
+    const transactions = installmentAmounts.map((installmentAmount, index): Transaction => {
+      const installmentIndex = installmentCount ? index + 1 : null;
+      const description = installmentCount ? `${item.description} ${installmentIndex}/${installmentCount}` : item.description;
+      return {
+        id: createId(),
+        household_id: householdId,
+        account_id: accountId,
+        transfer_account_id: transferAccountId,
+        category_id: item.category_id,
+        created_by: userId,
+        description,
+        normalized_description: normalizeText(description),
+        amount: installmentAmount,
+        type: item.type,
+        transaction_date: installmentCount ? addMonthsToISODate(item.transaction_date, index) : item.transaction_date,
+        payment_method: paymentMethod,
+        notes: installmentCount ? `installment:${installmentIndex}/${installmentCount};total:${item.amount}` : null,
+        source: 'manual',
+        recurrence_id: null,
+        installment_group_id: installmentGroupId,
+        installment_index: installmentIndex,
+        installment_total: installmentCount,
+        installment_base_description: installmentCount ? item.description : null,
+        created_at: createdAt,
+        updated_at: createdAt,
+        deleted_at: null,
+      };
     });
-    await enqueueMutation('transactions', transaction.id, 'upsert', transaction);
-    saved.push(transaction);
+    await updateLocalDb((db) => {
+      db.transactions.push(...transactions);
+    });
+    for (const transaction of transactions) {
+      await enqueueMutation('transactions', transaction.id, 'upsert', transaction);
+      saved.push(transaction);
+    }
   }
   return saved;
 }
@@ -530,6 +559,10 @@ export async function createBalanceMovement(params: {
     notes: isPosition ? `account_movement:position;reported_position:${params.amount}` : `account_movement:${params.kind}`,
     source: 'manual',
     recurrence_id: null,
+    installment_group_id: null,
+    installment_index: null,
+    installment_total: null,
+    installment_base_description: null,
     created_at: createdAt,
     updated_at: createdAt,
     deleted_at: null,
@@ -564,6 +597,99 @@ export async function updateTransaction(transaction: Transaction, patch: Partial
   });
   await enqueueMutation('transactions', updated.id, 'upsert', updated);
   return updated;
+}
+
+function stripInstallmentSuffix(description: string) {
+  return description.replace(/\s+\d{1,2}\s*\/\s*\d{1,2}\s*$/i, '').trim();
+}
+
+function parseInstallmentSuffix(description: string) {
+  const match = description.match(/\s+(\d{1,2})\s*\/\s*(\d{1,2})\s*$/i);
+  if (!match) return null;
+  return {
+    baseDescription: stripInstallmentSuffix(description),
+    index: Number(match[1]),
+    total: Number(match[2]),
+  };
+}
+
+export async function completeInstallmentsFromTransaction(transaction: Transaction, currentIndex: number, total: number) {
+  if (transaction.type !== 'expense') throw new Error('Somente despesas podem ser parceladas.');
+  if (!Number.isInteger(currentIndex) || !Number.isInteger(total) || total < 2 || currentIndex < 1 || currentIndex > total) {
+    throw new Error('Informe uma parcela válida.');
+  }
+
+  const createdAt = now();
+  const groupId = transaction.installment_group_id ?? createId();
+  const baseDescription = transaction.installment_base_description ?? stripInstallmentSuffix(transaction.description);
+  const nextTransactions: Transaction[] = [];
+
+  await updateLocalDb((db) => {
+    for (const item of db.transactions) {
+      const parsed = parseInstallmentSuffix(item.description);
+      const isSameManualInstallment =
+        parsed &&
+        item.household_id === transaction.household_id &&
+        item.type === transaction.type &&
+        item.amount === transaction.amount &&
+        parsed.total === total &&
+        normalizeText(parsed.baseDescription) === normalizeText(baseDescription) &&
+        !item.deleted_at;
+      if (!isSameManualInstallment) continue;
+      item.installment_group_id = groupId;
+      item.installment_index = parsed.index;
+      item.installment_total = total;
+      item.installment_base_description = baseDescription;
+      item.updated_at = createdAt;
+      enqueueInline(db, 'transactions', item.id, item);
+    }
+
+    const existingGroup = db.transactions.filter((item) => item.installment_group_id === groupId && !item.deleted_at);
+    const existingIndexes = new Set(existingGroup.map((item) => item.installment_index).filter((item): item is number => Boolean(item)));
+    existingIndexes.add(currentIndex);
+
+    const current = db.transactions.find((item) => item.id === transaction.id);
+    if (current) {
+      current.description = `${baseDescription} ${currentIndex}/${total}`;
+      current.normalized_description = normalizeText(current.description);
+      current.installment_group_id = groupId;
+      current.installment_index = currentIndex;
+      current.installment_total = total;
+      current.installment_base_description = baseDescription;
+      current.notes = current.notes?.startsWith('installment:')
+        ? `installment:${currentIndex}/${total}`
+        : current.notes
+          ? `${current.notes};installment:${currentIndex}/${total}`
+          : `installment:${currentIndex}/${total}`;
+      current.updated_at = createdAt;
+      enqueueInline(db, 'transactions', current.id, current);
+    }
+
+    for (let index = currentIndex + 1; index <= total; index += 1) {
+      if (existingIndexes.has(index)) continue;
+      const description = `${baseDescription} ${index}/${total}`;
+      const installment: Transaction = {
+        ...transaction,
+        id: createId(),
+        description,
+        normalized_description: normalizeText(description),
+        transaction_date: addMonthsToISODate(transaction.transaction_date, index - currentIndex),
+        notes: `installment:${index}/${total}`,
+        installment_group_id: groupId,
+        installment_index: index,
+        installment_total: total,
+        installment_base_description: baseDescription,
+        created_at: createdAt,
+        updated_at: createdAt,
+        deleted_at: null,
+      };
+      db.transactions.push(installment);
+      enqueueInline(db, 'transactions', installment.id, installment);
+      nextTransactions.push(installment);
+    }
+  });
+
+  return nextTransactions;
 }
 
 export async function softDeleteTransaction(transaction: Transaction) {

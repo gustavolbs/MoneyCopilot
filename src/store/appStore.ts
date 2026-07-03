@@ -32,6 +32,7 @@ import {
   softDeleteTransaction,
   updateTransactionCategory,
   updateTransaction,
+  completeInstallmentsFromTransaction,
   upsertBudget,
 } from '@/storage/repository';
 import { isOnline, listSyncLogs, pullHouseholdsAndMembers, syncNow } from '@/storage/sync';
@@ -88,6 +89,7 @@ type AppState = {
   changeTransactionCategory: (transaction: Transaction, categoryId: string) => Promise<void>;
   deleteTransaction: (transaction: Transaction) => Promise<void>;
   editTransaction: (transaction: Transaction, patch: Partial<Pick<Transaction, 'description' | 'amount' | 'type' | 'category_id' | 'account_id' | 'transfer_account_id' | 'transaction_date' | 'payment_method' | 'notes'>>) => Promise<void>;
+  completeInstallments: (transaction: Transaction, currentIndex: number, total: number) => Promise<void>;
   saveBudget: (categoryId: string, amount: number, month?: string) => Promise<void>;
   addRecurrence: (transaction: Transaction) => Promise<void>;
   sync: () => Promise<SyncStatus>;
@@ -285,6 +287,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (patch.category_id && patch.category_id !== transaction.category_id) {
       await updateTransactionCategory({ ...transaction, ...patch }, patch.category_id, true);
     }
+    await get().refresh();
+    void get().sync();
+  },
+
+  completeInstallments: async (transaction, currentIndex, total) => {
+    await completeInstallmentsFromTransaction(transaction, currentIndex, total);
     await get().refresh();
     void get().sync();
   },
