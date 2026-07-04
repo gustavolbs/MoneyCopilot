@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Account, Transaction } from "@/domain/types";
-import { readLocalDb, writeLocalDb } from "@/storage/db";
+import { __localDbTestUtils, readLocalDb, writeLocalDb } from "@/storage/db";
 import {
   completeInstallmentsFromTransaction,
   createBalanceMovement,
   createRecurrence,
   createTransactionsFromInput,
   linkTransactionToRecurrence,
+  listPendingMutationSummary,
   listAccounts,
   materializeDueRecurrences,
   reconcileDeletedAccountReferences,
@@ -39,6 +40,19 @@ const account = (overrides: Partial<Account>): Account => ({
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("local database migration", () => {
+  it("normalizes partial legacy states without categories", () => {
+    const normalized = __localDbTestUtils.normalize({
+      accounts: [account({ id: "legacy-account" })],
+      transactions: [],
+    });
+
+    expect(normalized.accounts).toHaveLength(1);
+    expect(normalized.categories.length).toBeGreaterThan(0);
+    expect(normalized.mutation_queue).toEqual([]);
+  });
+});
 
 describe("account reconciliation", () => {
   it("moves deleted duplicate references once", async () => {
@@ -134,6 +148,51 @@ describe("account movements", () => {
 
     expect(movement).toMatchObject({ account_id: wallet.id, type: "income" });
     expect((await listAccounts("household"))[0].type).toBe("cash");
+  });
+});
+
+describe("offline mutation queue", () => {
+  it("summarizes pending local changes by table", async () => {
+    installLocalStorage();
+    const state = await readLocalDb();
+    state.mutation_queue = [
+      {
+        id: "queue-1",
+        table_name: "transactions",
+        row_id: "transaction-1",
+        operation: "upsert",
+        payload: "{}",
+        created_at: "2026-07-04T00:00:00.000Z",
+        attempts: 0,
+        last_error: null,
+      },
+      {
+        id: "queue-2",
+        table_name: "transactions",
+        row_id: "transaction-2",
+        operation: "upsert",
+        payload: "{}",
+        created_at: "2026-07-04T00:00:01.000Z",
+        attempts: 0,
+        last_error: null,
+      },
+      {
+        id: "queue-3",
+        table_name: "budgets",
+        row_id: "budget-1",
+        operation: "upsert",
+        payload: "{}",
+        created_at: "2026-07-04T00:00:02.000Z",
+        attempts: 0,
+        last_error: null,
+      },
+    ];
+    await writeLocalDb(state);
+
+    await expect(listPendingMutationSummary()).resolves.toEqual([
+      { table: "transactions", label: "Transações", count: 2 },
+      { table: "budgets", label: "Orçamentos", count: 1 },
+    ]);
   });
 });
 

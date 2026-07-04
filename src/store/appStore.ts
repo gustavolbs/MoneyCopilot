@@ -25,6 +25,7 @@ import {
   listAccounts,
   listBudgets,
   listCategories,
+  listPendingMutationSummary,
   listRecurrences,
   listRules,
   listTransactions,
@@ -37,12 +38,13 @@ import {
   completeInstallmentsFromTransaction,
   upsertBudget,
 } from '@/storage/repository';
-import { isOnline, listSyncLogs, pullHouseholdsAndMembers, syncNow } from '@/storage/sync';
+import { isOnline, listSyncLogs, logSync, pullHouseholdsAndMembers, syncNow } from '@/storage/sync';
 
 type SyncStatus = 'idle' | 'offline' | 'syncing' | 'error';
 
 type FamilyMember = { user_id: string; role: string; name: string; isYou: boolean };
 type FamilyInvite = { id: string; email: string; role: string; created_at: string };
+type PendingMutationSummary = Array<{ table: string; label: string; count: number }>;
 
 // Aceita convites pendentes do e-mail logado (via funcao no banco) e baixa as households
 // resultantes, para que o usuario entre na Familia correta antes de criar uma nova.
@@ -60,6 +62,33 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
       window.setTimeout(() => reject(new Error(message)), timeoutMs);
     }),
   ]);
+}
+
+async function restoreSupabaseSession(online: boolean) {
+  try {
+    const result = await withTimeout(
+      supabase.auth.getSession(),
+      online ? 8000 : 2500,
+      online ? 'Tempo esgotado ao restaurar sessao.' : 'Sem conexão para restaurar sessão remota.',
+    );
+    if (result.data.session) return result.data.session;
+  } catch (error) {
+    await logSync('error', error instanceof Error ? error.message : 'Erro ao restaurar sessão.');
+  }
+
+  if (!online) return null;
+
+  try {
+    const refreshed = await withTimeout(
+      supabase.auth.refreshSession(),
+      8000,
+      'Tempo esgotado ao renovar sessão.',
+    );
+    return refreshed.data.session ?? null;
+  } catch (error) {
+    await logSync('error', error instanceof Error ? error.message : 'Erro ao renovar sessão.');
+    return null;
+  }
 }
 
 function addDaysToISODate(date: string, days: number) {
@@ -96,6 +125,7 @@ type AppState = {
   recurrences: Recurrence[];
   insights: Insight[];
   pendingMutations: number;
+  pendingMutationSummary: PendingMutationSummary;
   syncStatus: SyncStatus;
   syncLogs: Array<{ level: string; message: string; created_at: string }>;
   familyMembers: FamilyMember[];
@@ -115,6 +145,7 @@ type AppState = {
   saveBudget: (categoryId: string, amount: number, month?: string) => Promise<void>;
   addRecurrence: (transaction: Transaction, frequency?: Recurrence['frequency']) => Promise<void>;
   sync: () => Promise<SyncStatus>;
+  setConnectivity: (online: boolean) => void;
   resetCache: () => Promise<void>;
   addAccount: (name: string, type: Account['type'], cardSettings?: { dueDay: number; bestPurchaseDay: number }) => Promise<void>;
   editAccount: (account: Account, patch: Partial<Pick<Account, 'name' | 'type' | 'initial_balance' | 'credit_card_due_day' | 'credit_card_best_purchase_day'>>) => Promise<void>;
@@ -140,6 +171,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   recurrences: [],
   insights: [],
   pendingMutations: 0,
+  pendingMutationSummary: [],
   syncStatus: 'idle',
   syncLogs: [],
   familyMembers: [],
@@ -153,11 +185,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       const online = await isOnline();
       let session: Session | null = null;
       if (isSupabaseConfigured()) {
-        const result = await withTimeout(supabase.auth.getSession(), 8000, 'Tempo esgotado ao restaurar sessao.');
-        session = result.data.session;
-        supabase.auth.onAuthStateChange((_event, nextSession) => {
+        session = await restoreSupabaseSession(online);
+        supabase.auth.onAuthStateChange((event, nextSession) => {
+          if (!nextSession && event !== 'SIGNED_OUT') return;
           set({ session: nextSession, userId: nextSession?.user.id ?? null });
-          void get().ensureHousehold();
+          if (nextSession) {
+            void get()
+              .ensureHousehold()
+              .then(() => get().refresh())
+              .then(() => get().sync());
+          }
         });
       }
       const household = await getHousehold();
@@ -179,6 +216,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await get().refresh();
       if (online) void get().sync();
     } catch (error) {
+      await logSync('error', error instanceof Error ? error.message : 'Erro ao iniciar o app.');
       set({
         bootstrapped: true,
         loading: false,
@@ -201,7 +239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await acceptInvitesAndPull();
     await get().ensureHousehold();
     await get().refresh();
-    void get().sync();
+    await get().sync();
   },
 
   signUp: async (email, password, fullName) => {
@@ -224,7 +262,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await acceptInvitesAndPull();
     await get().ensureHousehold();
     await get().refresh();
-    void get().sync();
+    await get().sync();
     return { requiresEmailConfirmation: false };
   },
 
@@ -254,18 +292,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     const household = get().household ?? (await getHousehold());
     const categories = await listCategories();
     if (!household) {
-      set({ categories });
+      const [pendingMutations, pendingMutationSummary, syncLogs] = await Promise.all([
+        countPendingMutations(),
+        listPendingMutationSummary(),
+        listSyncLogs(),
+      ]);
+      set({ categories, pendingMutations, pendingMutationSummary, syncLogs });
       return;
     }
     await reconcileDeletedAccountReferences(household.id);
     await materializeDueRecurrences(household.id);
-    const [accounts, transactions, rules, budgets, recurrences, pendingMutations, syncLogs] = await Promise.all([
+    const [accounts, transactions, rules, budgets, recurrences, pendingMutations, pendingMutationSummary, syncLogs] = await Promise.all([
       listAccounts(household.id),
       listTransactions(household.id),
       listRules(household.id),
       listBudgets(household.id),
       listRecurrences(household.id),
       countPendingMutations(),
+      listPendingMutationSummary(),
       listSyncLogs(),
     ]);
     const currentMonth = monthKey();
@@ -280,6 +324,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       budgets,
       recurrences,
       pendingMutations,
+      pendingMutationSummary,
       syncLogs,
       insights: generateInsights({ transactions, categories, budgets, recurrences, accounts, month: currentMonth, previousMonth: monthKey(previous) }),
     });
@@ -371,6 +416,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const online = await isOnline();
     if (!online) {
       set({ syncStatus: 'offline' });
+      await logSync('info', 'Sem internet; sync adiado.');
+      await get().refresh();
       return 'offline';
     }
     set({ syncStatus: 'syncing' });
@@ -388,14 +435,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ syncStatus: 'idle' });
       return 'idle';
     } catch (error) {
+      await logSync('error', error instanceof Error ? error.message : 'Erro de sincronização');
+      await get().refresh();
       set({ syncStatus: 'error', error: error instanceof Error ? error.message : 'Erro de sincronização' });
       return 'error';
     }
   },
 
+  setConnectivity: (online) => {
+    set((state) => ({
+      syncStatus: online
+        ? state.syncStatus === 'offline'
+          ? 'idle'
+          : state.syncStatus
+        : 'offline',
+    }));
+  },
+
   resetCache: async () => {
     await resetLocalDb();
-    set({ household: null, transactions: [], accounts: [], budgets: [], recurrences: [], rules: [] });
+    set({ household: null, transactions: [], accounts: [], budgets: [], recurrences: [], rules: [], pendingMutations: 0, pendingMutationSummary: [] });
     await get().ensureHousehold();
     await get().refresh();
   },
@@ -436,7 +495,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadFamily: async () => {
     const household = get().household;
-    if (!household || !isSupabaseConfigured()) {
+    if (!household || !isSupabaseConfigured() || !(await isOnline())) {
       set({ familyMembers: [], familyInvites: [] });
       return;
     }
@@ -484,6 +543,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const me = get().userId;
     if (!household || !me || !email.trim()) return;
     if (!isSupabaseConfigured()) throw new Error('Configure o Supabase para convidar membros.');
+    if (!(await isOnline())) throw new Error('Você está offline. Convites de família serão habilitados quando a conexão voltar.');
     const { error } = await supabase.from('household_invites').insert({
       household_id: household.id,
       email: email.trim().toLowerCase(),
@@ -500,6 +560,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   removeMember: async (userId) => {
     const household = get().household;
     if (!household) return;
+    if (!(await isOnline())) throw new Error('Você está offline. Gerenciamento de família será habilitado quando a conexão voltar.');
     const { error } = await supabase.from('household_members').delete().eq('household_id', household.id).eq('user_id', userId);
     if (error) {
       set({ error: error.message });

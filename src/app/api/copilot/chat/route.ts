@@ -11,6 +11,9 @@ type CopilotRequest = {
 };
 
 const model = process.env.OPENAI_MODEL ?? "gpt-5.5";
+const defaultMaxOutputTokens = 8000;
+const webSearchMaxOutputTokens = 12000;
+const retryMaxOutputTokens = 12000;
 
 function normalizedText(value: string) {
   return value
@@ -182,6 +185,7 @@ export function buildPrompt(
   messages: CopilotChatMessage[],
   snapshot: ReturnType<typeof compactSnapshotForPrompt>,
   enableWebSearch: boolean,
+  retryCompact = false,
 ) {
   const relevantMessages = enableWebSearch
     ? messages.filter((message) => message.role === "user").slice(-1)
@@ -220,10 +224,18 @@ export function buildPrompt(
         "Estruture a resposta em: 1) achados por escola com fontes, 2) comparação objetiva, 3) impacto financeiro, 4) perguntas que faltam responder antes da decisão.",
       ]
     : [];
+  const retryInstructions = retryCompact
+    ? [
+        "A tentativa anterior esgotou o limite de tokens antes de produzir texto final.",
+        "Responda de forma objetiva e priorize uma resposta final útil. Não aprofunde além do necessário.",
+        "Se faltarem transações brutas ou algum dado detalhado no contexto compacto, diga isso claramente e trabalhe com os agregados disponíveis.",
+      ]
+    : [];
 
   return [
     ...baseInstructions,
     ...searchInstructions,
+    ...retryInstructions,
     "",
     "Contexto financeiro consolidado:",
     JSON.stringify(snapshot, null, 2),
@@ -231,6 +243,48 @@ export function buildPrompt(
     "Conversa:",
     history,
   ].join("\n");
+}
+
+export function isIncompleteDueToMaxOutputTokens(payload: unknown) {
+  if (!payload || typeof payload !== "object") return false;
+  const record = payload as JsonRecord;
+  const details = record.incomplete_details;
+  if (!details || typeof details !== "object") return false;
+  return (
+    record.status === "incomplete" &&
+    (details as JsonRecord).reason === "max_output_tokens"
+  );
+}
+
+function responseBodyForRequest(
+  messages: CopilotChatMessage[],
+  snapshot: CopilotFinancialSnapshot,
+  enableWebSearch: boolean,
+  retryCompact = false,
+) {
+  const promptSnapshot = retryCompact
+    ? compactSnapshotForWebSearch(snapshot)
+    : compactSnapshotForPrompt(snapshot, enableWebSearch);
+  return {
+    model,
+    input: buildPrompt(messages, promptSnapshot, enableWebSearch, retryCompact),
+    max_output_tokens: retryCompact
+      ? retryMaxOutputTokens
+      : enableWebSearch
+        ? webSearchMaxOutputTokens
+        : defaultMaxOutputTokens,
+    reasoning: {
+      effort: retryCompact ? "low" : enableWebSearch ? "low" : "medium",
+    },
+    text: {
+      verbosity: retryCompact ? "low" : "medium",
+    },
+    ...(enableWebSearch
+      ? {
+          tools: [{ type: "web_search" }],
+        }
+      : {}),
+  };
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -339,33 +393,21 @@ export async function POST(request: Request) {
   }
 
   const enableWebSearch = shouldEnableWebSearch(messages);
-  const promptSnapshot = compactSnapshotForPrompt(body.snapshot, enableWebSearch);
-  const responseBody = {
-    model,
-    input: buildPrompt(messages, promptSnapshot, enableWebSearch),
-    max_output_tokens: enableWebSearch ? 5000 : 1200,
-    reasoning: {
-      effort: enableWebSearch ? "low" : "medium",
-    },
-    text: {
-      verbosity: "medium",
-    },
-    ...(enableWebSearch
-      ? {
-          tools: [{ type: "web_search" }],
-        }
-      : {}),
-  };
-
-  const requestPayload = JSON.stringify(responseBody);
-  const sendRequest = () =>
+  const sendRequest = (retryCompact = false) =>
     fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: requestPayload,
+      body: JSON.stringify(
+        responseBodyForRequest(
+          messages,
+          body.snapshot as CopilotFinancialSnapshot,
+          enableWebSearch,
+          retryCompact,
+        ),
+      ),
     });
 
   let response = await sendRequest();
@@ -376,6 +418,11 @@ export async function POST(request: Request) {
   if (!response.ok && delay > 0) {
     await wait(delay);
     response = await sendRequest();
+    payload = await response.json();
+  }
+
+  if (response.ok && !outputText(payload) && isIncompleteDueToMaxOutputTokens(payload)) {
+    response = await sendRequest(true);
     payload = await response.json();
   }
 

@@ -142,7 +142,7 @@ export function TransactionEditor({ transaction, transactions, categories, accou
 
   return (
     <Dialog open={Boolean(transaction)} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="modal-panel transaction-editor-modal" showCloseButton={false}>
+      <DialogContent className="modal-panel transaction-editor-modal" showCloseButton={false} unstyledPosition>
         <header className="transaction-editor-header">
           <div className="transaction-editor-title-group">
             <span className="transaction-editor-kicker">Transação</span>

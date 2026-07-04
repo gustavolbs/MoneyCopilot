@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPrompt,
   compactSnapshotForPrompt,
+  isIncompleteDueToMaxOutputTokens,
   outputText,
   shouldEnableWebSearch,
 } from "@/app/api/copilot/chat/route";
@@ -173,6 +174,22 @@ describe("copilot chat route", () => {
 
   it("extracts direct output_text responses", () => {
     expect(outputText({ output_text: "Resposta direta." })).toBe("Resposta direta.");
+  });
+
+  it("detects reasoning-only responses stopped by max_output_tokens", () => {
+    expect(
+      isIncompleteDueToMaxOutputTokens({
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output: [{ type: "reasoning" }],
+      }),
+    ).toBe(true);
+    expect(
+      isIncompleteDueToMaxOutputTokens({
+        status: "complete",
+        output: [{ type: "message" }],
+      }),
+    ).toBe(false);
   });
 
   it("uses a shorter bounded-search prompt when web search is enabled", () => {

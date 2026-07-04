@@ -844,3 +844,23 @@ export async function countPendingMutations() {
   const db = await readLocalDb();
   return db.mutation_queue.length;
 }
+
+export async function listPendingMutationSummary() {
+  const db = await readLocalDb();
+  const labels: Record<TableName, string> = {
+    profiles: 'Perfis',
+    households: 'Famílias',
+    household_members: 'Membros',
+    accounts: 'Contas',
+    categories: 'Categorias',
+    transactions: 'Transações',
+    categorization_rules: 'Regras',
+    budgets: 'Orçamentos',
+    recurrences: 'Recorrências',
+  };
+  const counts = new Map<TableName, number>();
+  for (const item of db.mutation_queue) counts.set(item.table_name, (counts.get(item.table_name) ?? 0) + 1);
+  return Array.from(counts.entries())
+    .map(([table, count]) => ({ table, label: labels[table], count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}

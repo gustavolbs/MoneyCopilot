@@ -4402,9 +4402,12 @@ button {
 }
 
 .transaction-editor-modal {
+  top: 50%;
+  left: 50%;
   width: clamp(800px, 62vw, 1040px);
   max-width: calc(100vw - 48px);
   max-height: min(760px, calc(100dvh - 40px));
+  transform: translate(-50%, -50%);
   gap: 0;
   padding: 0;
   border: 1px solid var(--mc-line);
@@ -9776,13 +9779,20 @@ button {
 
   .transaction-editor-modal {
     position: fixed;
-    inset: 0;
+    top: max(
+      10px,
+      calc((100svh - min(760px, 86svh)) / 2),
+      env(safe-area-inset-top)
+    );
+    right: 0;
+    bottom: auto;
+    left: 0;
     width: min(390px, calc(100vw - 18px));
-    min-width: min(390px, calc(100vw - 18px));
+    min-width: 0;
     max-width: calc(100vw - 18px);
-    height: fit-content;
-    max-height: min(86dvh, 760px);
-    margin: auto;
+    height: min(760px, 86svh);
+    max-height: min(760px, calc(100svh - 20px));
+    margin: 0 auto;
     transform: none;
     border-radius: 20px;
     background:
@@ -12343,12 +12353,16 @@ button {
 
   .transaction-editor-modal {
     position: fixed !important;
+    top: max(10px, calc((100svh - min(760px, 86svh)) / 2), env(safe-area-inset-top)) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
     width: min(390px, calc(100vw - 18px)) !important;
-    min-width: min(390px, calc(100vw - 18px)) !important;
+    min-width: 0 !important;
     max-width: calc(100vw - 18px) !important;
-    height: fit-content !important;
-    max-height: min(86dvh, 760px) !important;
-    margin: auto !important;
+    height: min(760px, 86svh) !important;
+    max-height: min(760px, calc(100svh - 20px)) !important;
+    margin: 0 auto !important;
     transform: none !important;
   }
 }
